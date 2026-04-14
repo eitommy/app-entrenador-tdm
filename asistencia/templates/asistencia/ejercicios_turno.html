@@ -1,0 +1,95 @@
+{% extends "asistencia/base.html" %}
+{% load asistencia_extras %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1">Ejercicios del turno</h2>
+        <p class="text-muted mb-0">{{ fecha|date:"j F Y" }}</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-outline-secondary" href="{% url 'ejercicios_turno' ayer|date:'Y-m-d' turno %}">← Ayer</a>
+        <a class="btn btn-dark" href="{% url 'ejercicios_turno' hoy|date:'Y-m-d' turno %}">Hoy</a>
+        <a class="btn btn-outline-secondary" href="{% url 'ejercicios_turno' maniana|date:'Y-m-d' turno %}">Mañana →</a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header fw-bold">Ir directo a una fecha</div>
+    <div class="card-body">
+        <form method="get" action="{% url 'ir_a_fecha_ejercicios' %}" class="row g-2">
+            <div class="col-md-8">
+                <input type="date" name="fecha" class="form-control" value="{{ fecha|date:'Y-m-d' }}" required>
+                <input type="hidden" name="turno" value="{{ turno }}">
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-outline-primary w-100">Ir</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="mb-4 d-flex gap-2 flex-wrap">
+    <a class="btn {% if turno == 1 %}btn-primary{% else %}btn-outline-primary{% endif %}"
+       href="{% url 'ejercicios_turno' fecha|date:'Y-m-d' 1 %}">
+        Turno 1
+    </a>
+
+    <a class="btn {% if turno == 2 %}btn-warning{% else %}btn-outline-warning{% endif %}"
+       href="{% url 'ejercicios_turno' fecha|date:'Y-m-d' 2 %}">
+        Turno 2
+    </a>
+
+    <a class="btn {% if turno == 3 %}btn-success{% else %}btn-outline-success{% endif %}"
+       href="{% url 'ejercicios_turno' fecha|date:'Y-m-d' 3 %}">
+        Turno 3
+    </a>
+
+    <a class="btn btn-outline-dark" href="{% url 'dia_turno' fecha|date:'Y-m-d' turno %}">
+        Ver asistencia
+    </a>
+</div>
+
+{% if asistencias %}
+    {% for item in asistencias %}
+        <div class="card mb-3">
+            <div class="card-header fw-bold">{{ item.jugador }}</div>
+            <div class="card-body">
+                <form method="post" action="{% url 'guardar_ejercicios_jugador' entrenamiento.id item.jugador.id %}">
+                    {% csrf_token %}
+
+                    <div class="row">
+                        {% for ejercicio in ejercicios %}
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input
+                                        class="form-check-input"
+                                        type="checkbox"
+                                        name="ejercicios"
+                                        value="{{ ejercicio.id }}"
+                                        id="ejercicio_{{ item.jugador.id }}_{{ ejercicio.id }}"
+                                        {% if ejercicio.id in ejercicios_por_jugador|get_item:item.jugador.id %}checked{% endif %}
+                                    >
+                                    <label class="form-check-label" for="ejercicio_{{ item.jugador.id }}_{{ ejercicio.id }}">
+                                        {{ ejercicio.nombre }}
+                                    </label>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <button type="submit" class="btn btn-dark mt-3">Guardar ejercicios</button>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="card">
+        <div class="card-body">
+            <p class="mb-0 text-muted">No hay jugadores cargados en este turno.</p>
+        </div>
+    </div>
+{% endif %}
+
+{% endblock %}

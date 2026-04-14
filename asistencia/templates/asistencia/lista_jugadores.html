@@ -1,0 +1,49 @@
+{% extends "asistencia/base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Jugadores</h2>
+    <a class="btn btn-primary" href="{% url 'crear_jugador' %}">+ Agregar jugador</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if jugadores %}
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Activo</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for jugador in jugadores %}
+                            <tr>
+                                <td>{{ jugador }}</td>
+                                <td>
+                                    {% if jugador.activo %}
+                                        <span class="badge bg-success">Sí</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">No</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a class="btn btn-sm btn-outline-dark" href="{% url 'editar_jugador' jugador.id %}">
+                                        Editar
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="mb-0 text-muted">No hay jugadores cargados.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

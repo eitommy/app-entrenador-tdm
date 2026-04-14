@@ -1,0 +1,119 @@
+{% extends "asistencia/base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Seguimiento semanal</h2>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Jugador</label>
+                <select name="jugador" class="form-select" required>
+                    <option value="">Seleccionar jugador</option>
+                    {% for jugador in jugadores %}
+                        <option value="{{ jugador.id }}" {% if jugador_seleccionado and jugador.id == jugador_seleccionado.id %}selected{% endif %}>
+                            {{ jugador }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Fecha de referencia</label>
+                <input type="date" name="fecha" class="form-control" value="{{ fecha_base|date:'Y-m-d' }}">
+            </div>
+
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-dark w-100">Ver semana</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if jugador_seleccionado %}
+    <div class="card mb-4">
+        <div class="card-header fw-bold">
+            {{ jugador_seleccionado }}
+        </div>
+        <div class="card-body">
+            {% if resumen %}
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <div class="border rounded p-3 bg-white">
+                            <div class="text-muted small">Días programados</div>
+                            <div class="fs-4 fw-bold">{{ resumen.total_dias_programados }}</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="border rounded p-3 bg-white">
+                            <div class="text-muted small">Asistencias</div>
+                            <div class="fs-4 fw-bold">{{ resumen.total_asistencias }}</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="border rounded p-3 bg-white">
+                            <div class="text-muted small">Tardes</div>
+                            <div class="fs-4 fw-bold">{{ resumen.total_tardes }}</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="border rounded p-3 bg-white">
+                            <div class="text-muted small">% asistencia</div>
+                            <div class="fs-4 fw-bold">{{ resumen.porcentaje }}%</div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Día</th>
+                            <th>Asistencia</th>
+                            <th>Ejercicios</th>
+                            <th>Turnos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fila in filas %}
+                            <tr>
+                                <td>{{ fila.dia|date:"l j/m" }}</td>
+                                <td>{{ fila.asistencia }}</td>
+                                <td>
+                                    {% if fila.ejercicios_por_categoria %}
+                                        <div class="d-flex flex-column gap-2">
+                                            {% for categoria, ejercicios in fila.ejercicios_por_categoria.items %}
+                                                <div class="categoria-ejercicios-box">
+                                                    <div class="categoria-ejercicios-header">
+                                                        {{ categoria }}
+                                                    </div>
+                                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                                        {% for ejercicio in ejercicios %}
+                                                            <span class="badge-ejercicio">{{ ejercicio }}</span>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ fila.turnos }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+{% endblock %}
