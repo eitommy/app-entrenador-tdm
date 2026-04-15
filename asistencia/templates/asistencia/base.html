@@ -11,17 +11,18 @@
 </head>
 <body class="bg-light">
 
-<nav class="navbar navbar-expand-lg bg-white border-bottom mb-4">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm mb-4">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="{% url 'inicio' %}">🏓 TDM Asistencia</a>
+        <a class="navbar-brand fw-bold" href="{% url 'inicio' %}">
+            🎾 TDM Coach
+        </a>
 
-        <div class="d-flex gap-3 flex-wrap">
-            <a class="nav-link" href="{% url 'inicio' %}">Inicio</a>
-            <a class="nav-link" href="{% url 'lista_jugadores' %}">Jugadores</a>
-            <a class="nav-link" href="{% url 'cargar_ejercicios' %}">Cargar ejercicios</a>
-            <a class="nav-link" href="{% url 'lista_ejercicios' %}">Base ejercicios</a>
-            <a class="nav-link" href="{% url 'seguimiento_semanal' %}">Seguimiento semanal</a>
-            <a class="nav-link" href="{% url 'reportes' %}">Reportes</a>
+        <div class="d-flex gap-3">
+            <a class="nav-link text-white" href="{% url 'inicio' %}">Inicio</a>
+            <a class="nav-link text-white" href="{% url 'lista_jugadores' %}">Jugadores</a>
+            <a class="nav-link text-white" href="{% url 'cargar_ejercicios' %}">Ejercicios</a>
+            <a class="nav-link text-white" href="{% url 'seguimiento_semanal' %}">Seguimiento</a>
+            <a class="nav-link text-white" href="{% url 'reportes' %}">Reportes</a>
         </div>
     </div>
 </nav>
