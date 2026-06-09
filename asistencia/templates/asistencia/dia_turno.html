@@ -171,14 +171,16 @@
             <div class="d-flex gap-2 flex-wrap">
                 <form method="post" action="{% url 'copiar_lista_ayer' entrenamiento.id %}">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-outline-dark">
+                    <button type="submit" class="btn btn-outline-dark"
+                        onclick="return confirm('¿Copiar la última lista anterior de este turno?')">
                         Copiar lista anterior
                     </button>
                 </form>
 
                 <form method="post" action="{% url 'marcar_todos_asistieron' entrenamiento.id %}">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="btn btn-success"
+                        onclick="return confirm('¿Seguro que querés marcar a todos como presentes?')">
                         Marcar todos presentes
                     </button>
                 </form>
@@ -224,7 +226,8 @@
 
                                 <form method="post" action="{% url 'quitar_jugador' item.id %}">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('¿Quitar este jugador del turno?')">
                                         Quitar
                                     </button>
                                 </form>

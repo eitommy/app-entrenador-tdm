@@ -196,17 +196,39 @@ def guardar_info_entrenamiento(request, entrenamiento_id):
 @require_POST
 def agregar_jugador(request, entrenamiento_id):
     entrenamiento = get_object_or_404(Entrenamiento, id=entrenamiento_id)
-    asignar_entrenador_si_vacio(entrenamiento, request.user)
-
     jugador_id = request.POST.get("jugador_id")
+
+    if not jugador_id:
+        messages.info(request, "Seleccioná un jugador para agregar al turno.")
+        return redirect(
+            "dia_turno",
+            fecha_str=entrenamiento.fecha.strftime("%Y-%m-%d"),
+            turno=entrenamiento.turno
+        )
+
     jugador = get_object_or_404(Jugador, id=jugador_id, activo=True)
 
-    Asistencia.objects.get_or_create(jugador=jugador, entrenamiento=entrenamiento)
+    asistencia, creado = Asistencia.objects.get_or_create(
+        entrenamiento=entrenamiento,
+        jugador=jugador,
+        defaults={"estado": "pendiente"}
+    )
+
+    if creado:
+        messages.success(
+            request,
+            f"{jugador} fue cargado correctamente al Turno {entrenamiento.turno}."
+        )
+    else:
+        messages.info(
+            request,
+            f"{jugador} ya está cargado en el Turno {entrenamiento.turno}."
+        )
 
     return redirect(
         "dia_turno",
-        fecha_str=entrenamiento.fecha.isoformat(),
-        turno=entrenamiento.turno,
+        fecha_str=entrenamiento.fecha.strftime("%Y-%m-%d"),
+        turno=entrenamiento.turno
     )
 
 
@@ -629,35 +651,65 @@ def reportes(request):
     inicio_mes = hoy.replace(day=1)
 
     datos = []
+
     for jugador in Jugador.objects.filter(activo=True):
-        sem = Asistencia.objects.filter(
+        asistencias_semana = Asistencia.objects.filter(
             jugador=jugador,
             entrenamiento__fecha__range=[inicio_semana, hoy],
         )
-        mes = Asistencia.objects.filter(
+
+        asistencias_mes = Asistencia.objects.filter(
             jugador=jugador,
             entrenamiento__fecha__range=[inicio_mes, hoy],
         )
 
-        sem_total = sem.count()
-        sem_ok = sem.filter(Q(estado="asistio") | Q(estado="tarde")).count()
-        sem_pct = round((sem_ok / sem_total) * 100, 1) if sem_total else 0
+        semana_total = asistencias_semana.count()
+        semana_presentes = asistencias_semana.filter(
+            Q(estado="asistio") | Q(estado="tarde")
+        ).count()
+        semana_ausentes = asistencias_semana.filter(estado="ausente").count()
+        semana_porcentaje = round((semana_presentes / semana_total) * 100, 1) if semana_total else 0
 
-        mes_total = mes.count()
-        mes_ok = mes.filter(Q(estado="asistio") | Q(estado="tarde")).count()
-        mes_pct = round((mes_ok / mes_total) * 100, 1) if mes_total else 0
+        mes_total = asistencias_mes.count()
+        mes_presentes = asistencias_mes.filter(
+            Q(estado="asistio") | Q(estado="tarde")
+        ).count()
+        mes_ausentes = asistencias_mes.filter(estado="ausente").count()
+        mes_porcentaje = round((mes_presentes / mes_total) * 100, 1) if mes_total else 0
+
+        if mes_porcentaje >= 80:
+            estado_clase = "success"
+            estado_texto = "Buena asistencia"
+        elif mes_porcentaje >= 50:
+            estado_clase = "warning"
+            estado_texto = "Asistencia media"
+        else:
+            estado_clase = "danger"
+            estado_texto = "Baja asistencia"
 
         datos.append({
             "jugador": jugador,
-            "sem_total": sem_total,
-            "sem_ok": sem_ok,
-            "sem_pct": sem_pct,
+
+            "semana_total": semana_total,
+            "semana_presentes": semana_presentes,
+            "semana_ausentes": semana_ausentes,
+            "semana_porcentaje": semana_porcentaje,
+
             "mes_total": mes_total,
-            "mes_ok": mes_ok,
-            "mes_pct": mes_pct,
+            "mes_presentes": mes_presentes,
+            "mes_ausentes": mes_ausentes,
+            "mes_porcentaje": mes_porcentaje,
+
+            "estado_clase": estado_clase,
+            "estado_texto": estado_texto,
         })
 
-    return render(request, "asistencia/reportes.html", {"datos": datos, "hoy": hoy})
+    return render(request, "asistencia/reportes.html", {
+        "datos": datos,
+        "hoy": hoy,
+        "inicio_semana": inicio_semana,
+        "inicio_mes": inicio_mes,
+    })
 
 
 @login_required

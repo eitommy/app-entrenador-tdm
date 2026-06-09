@@ -2,34 +2,140 @@
 
 {% block content %}
 
-<h2 class="mb-3">Reportes</h2>
-<p class="text-muted">Hasta {{ hoy|date:"j F Y" }}</p>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <h1 class="mb-1">Reportes</h1>
+        <p class="text-secondary mb-0">
+            Resumen de asistencia semanal y mensual por jugador.
+        </p>
+    </div>
 
-<div class="card">
+    <a href="{% url 'inicio' %}" class="btn btn-outline-dark">
+        ← Volver al panel
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">Semana actual</div>
+                <h5 class="mb-0">
+                    {{ inicio_semana|date:"d/m/Y" }} al {{ hoy|date:"d/m/Y" }}
+                </h5>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">Mes actual</div>
+                <h5 class="mb-0">
+                    Desde {{ inicio_mes|date:"d/m/Y" }}
+                </h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table align-middle">
-                <thead>
-                    <tr>
-                        <th>Jugador</th>
-                        <th>Semana</th>
-                        <th>% Semana</th>
-                        <th>Mes</th>
-                        <th>% Mes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in datos %}
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+            <div>
+                <h4 class="mb-1">Asistencia de jugadores</h4>
+                <p class="text-muted mb-0">
+                    Se toman como presentes los estados “Asistió” y “Tarde”.
+                </p>
+            </div>
+
+            <span class="badge bg-dark fs-6">
+                {{ datos|length }} jugador{{ datos|length|pluralize:"es" }}
+            </span>
+        </div>
+
+        {% if datos %}
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
                         <tr>
-                            <td>{{ row.jugador }}</td>
-                            <td>{{ row.sem_ok }}/{{ row.sem_total }}</td>
-                            <td>{{ row.sem_pct }}%</td>
-                            <td>{{ row.mes_ok }}/{{ row.mes_total }}</td>
-                            <td>{{ row.mes_pct }}%</td>
+                            <th>Jugador</th>
+                            <th class="text-center">Semana</th>
+                            <th class="text-center">Mes</th>
+                            <th class="text-center">Estado</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+
+                    <tbody>
+                        {% for item in datos %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item.jugador }}</strong>
+                                </td>
+
+                                <td class="text-center">
+                                    <div class="fw-bold">
+                                        {{ item.semana_porcentaje }}%
+                                    </div>
+
+                                    <small class="text-muted">
+                                        {{ item.semana_presentes }}/{{ item.semana_total }} presentes
+                                    </small>
+
+                                    {% if item.semana_ausentes > 0 %}
+                                        <br>
+                                        <small class="text-danger">
+                                            {{ item.semana_ausentes }} ausente{{ item.semana_ausentes|pluralize:"s" }}
+                                        </small>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-center">
+                                    <div class="fw-bold">
+                                        {{ item.mes_porcentaje }}%
+                                    </div>
+
+                                    <small class="text-muted">
+                                        {{ item.mes_presentes }}/{{ item.mes_total }} presentes
+                                    </small>
+
+                                    {% if item.mes_ausentes > 0 %}
+                                        <br>
+                                        <small class="text-danger">
+                                            {{ item.mes_ausentes }} ausente{{ item.mes_ausentes|pluralize:"s" }}
+                                        </small>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-center">
+                                    <span class="badge bg-{{ item.estado_clase }}">
+                                        {{ item.estado_texto }}
+                                    </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <h5 class="mb-2">No hay datos para mostrar</h5>
+                <p class="text-muted mb-0">
+                    Cuando cargues asistencias, van a aparecer los reportes acá.
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mt-4">
+    <div class="card-body">
+        <h5 class="mb-3">Referencia</h5>
+
+        <div class="d-flex gap-2 flex-wrap">
+            <span class="badge bg-success">80% o más: buena asistencia</span>
+            <span class="badge bg-warning text-dark">50% a 79%: asistencia media</span>
+            <span class="badge bg-danger">Menos de 50%: baja asistencia</span>
         </div>
     </div>
 </div>
