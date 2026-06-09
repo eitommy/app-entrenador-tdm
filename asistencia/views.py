@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -110,11 +110,32 @@ def dia_turno(request, fecha_str, turno):
     turno = int(turno)
 
     entrenamiento = obtener_o_crear_entrenamiento(fecha, turno)
-    asistencias = Asistencia.objects.filter(entrenamiento=entrenamiento).select_related("jugador")
+
+    asistencias = list(
+        Asistencia.objects.filter(entrenamiento=entrenamiento)
+        .select_related("jugador")
+    )
 
     jugadores_disponibles = Jugador.objects.filter(activo=True).exclude(
-        id__in=asistencias.values_list("jugador_id", flat=True)
+        id__in=[asistencia.jugador_id for asistencia in asistencias]
     )
+
+    jugadores_ids = [asistencia.jugador_id for asistencia in asistencias]
+
+    ejercicios_por_jugador = (
+        EjercicioRealizado.objects
+        .filter(jugador_id__in=jugadores_ids, fecha=fecha)
+        .values("jugador_id")
+        .annotate(total=Count("id"))
+    )
+
+    ejercicios_contador = {
+        item["jugador_id"]: item["total"]
+        for item in ejercicios_por_jugador
+    }
+
+    for asistencia in asistencias:
+        asistencia.ejercicios_cargados = ejercicios_contador.get(asistencia.jugador_id, 0)
 
     contexto = {
         "entrenamiento": entrenamiento,
