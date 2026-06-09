@@ -542,7 +542,7 @@ def guardar_ejercicios(request):
 
 @login_required
 def seguimiento_semanal(request):
-    jugadores = Jugador.objects.filter(activo=True)
+    jugadores = Jugador.objects.filter(activo=True).order_by("apellido", "nombre")
 
     jugador_id = request.GET.get("jugador")
     fecha_str = request.GET.get("fecha")
@@ -556,7 +556,11 @@ def seguimiento_semanal(request):
         fecha_base = timezone.localdate()
 
     inicio_semana = fecha_base - timedelta(days=fecha_base.weekday())
+    fin_semana = inicio_semana + timedelta(days=4)
     dias_semana = [inicio_semana + timedelta(days=i) for i in range(5)]
+
+    semana_anterior = inicio_semana - timedelta(days=7)
+    semana_siguiente = inicio_semana + timedelta(days=7)
 
     jugador_seleccionado = None
     filas = []
@@ -567,70 +571,93 @@ def seguimiento_semanal(request):
 
         if jugador_seleccionado:
             total_dias_programados = 0
-            total_asistencias = 0
+            total_presentes = 0
             total_tardes = 0
             total_ausencias = 0
+            total_ejercicios = 0
 
             for dia in dias_semana:
-                asistencias_dia = Asistencia.objects.filter(
-                    jugador=jugador_seleccionado,
-                    entrenamiento__fecha=dia,
-                ).select_related("entrenamiento")
+                asistencias_dia = (
+                    Asistencia.objects
+                    .filter(
+                        jugador=jugador_seleccionado,
+                        entrenamiento__fecha=dia,
+                    )
+                    .select_related("entrenamiento")
+                )
 
-                turnos = list(asistencias_dia.values_list("entrenamiento__turno", flat=True))
-                estados = list(asistencias_dia.values_list("estado", flat=True))
+                turnos = list(
+                    asistencias_dia.values_list("entrenamiento__turno", flat=True)
+                )
+
+                estados = list(
+                    asistencias_dia.values_list("estado", flat=True)
+                )
 
                 if asistencias_dia.exists():
                     total_dias_programados += 1
 
-                if "asistio" in estados or "tarde" in estados:
-                    total_asistencias += 1
-
-                if "tarde" in estados:
+                if "asistio" in estados:
+                    asistencia_texto = "Asistió"
+                    asistencia_clase = "success"
+                    total_presentes += 1
+                elif "tarde" in estados:
+                    asistencia_texto = "Tarde"
+                    asistencia_clase = "warning text-dark"
+                    total_presentes += 1
                     total_tardes += 1
-
-                if "ausente" in estados and "asistio" not in estados and "tarde" not in estados:
+                elif "ausente" in estados:
+                    asistencia_texto = "Ausente"
+                    asistencia_clase = "danger"
                     total_ausencias += 1
+                else:
+                    asistencia_texto = "Sin marcar"
+                    asistencia_clase = "secondary"
 
-                ejercicios_qs = EjercicioRealizado.objects.filter(
-                    jugador=jugador_seleccionado,
-                    fecha=dia,
-                ).select_related("ejercicio").order_by(
-                    "ejercicio__categoria",
-                    "ejercicio__nombre",
+                ejercicios_qs = (
+                    EjercicioRealizado.objects
+                    .filter(
+                        jugador=jugador_seleccionado,
+                        fecha=dia,
+                    )
+                    .select_related("ejercicio")
+                    .order_by(
+                        "ejercicio__categoria",
+                        "ejercicio__nombre",
+                    )
                 )
 
                 ejercicios_por_categoria = {}
+
                 for item in ejercicios_qs:
                     categoria = item.ejercicio.get_categoria_display()
-                    ejercicios_por_categoria.setdefault(categoria, []).append(item.ejercicio.nombre)
+                    ejercicios_por_categoria.setdefault(categoria, []).append(
+                        item.ejercicio.nombre
+                    )
 
-                if "asistio" in estados:
-                    asistencia_texto = "Asistió"
-                elif "tarde" in estados:
-                    asistencia_texto = "Tarde"
-                elif "ausente" in estados:
-                    asistencia_texto = "Ausente"
-                else:
-                    asistencia_texto = "-"
+                cantidad_ejercicios = ejercicios_qs.count()
+                total_ejercicios += cantidad_ejercicios
 
                 filas.append({
                     "dia": dia,
-                    "asistencia": asistencia_texto,
+                    "asistencia_texto": asistencia_texto,
+                    "asistencia_clase": asistencia_clase,
                     "turnos": ", ".join([str(t) for t in sorted(set(turnos))]) if turnos else "-",
                     "ejercicios_por_categoria": ejercicios_por_categoria,
+                    "cantidad_ejercicios": cantidad_ejercicios,
                 })
 
             porcentaje = round(
-                (total_asistencias / total_dias_programados) * 100,
+                (total_presentes / total_dias_programados) * 100,
                 1,
             ) if total_dias_programados else 0
 
             resumen = {
                 "total_dias_programados": total_dias_programados,
-                "total_asistencias": total_asistencias,
+                "total_presentes": total_presentes,
                 "total_tardes": total_tardes,
                 "total_ausencias": total_ausencias,
+                "total_ejercicios": total_ejercicios,
                 "porcentaje": porcentaje,
             }
 
@@ -638,9 +665,14 @@ def seguimiento_semanal(request):
         "jugadores": jugadores,
         "jugador_seleccionado": jugador_seleccionado,
         "fecha_base": fecha_base,
+        "inicio_semana": inicio_semana,
+        "fin_semana": fin_semana,
+        "semana_anterior": semana_anterior,
+        "semana_siguiente": semana_siguiente,
         "filas": filas,
         "resumen": resumen,
     }
+
     return render(request, "asistencia/seguimiento_semanal.html", contexto)
 
 
@@ -715,5 +747,3 @@ def reportes(request):
 @login_required
 def acerca(request):
     return render(request, "asistencia/acerca.html")
-
-    return render(request, "asistencia/reportes.html", {"datos": datos, "hoy": hoy})

@@ -2,11 +2,20 @@
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Seguimiento semanal</h2>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <h1 class="mb-1">Seguimiento semanal</h1>
+        <p class="text-secondary mb-0">
+            Revisá la asistencia y los ejercicios realizados por jugador durante la semana.
+        </p>
+    </div>
+
+    <a href="{% url 'inicio' %}" class="btn btn-outline-dark">
+        ← Volver al panel
+    </a>
 </div>
 
-<div class="card mb-4">
+<div class="card shadow-sm border-0 mb-4">
     <div class="card-body">
         <form method="get" class="row g-3 align-items-end">
             <div class="col-md-5">
@@ -27,86 +36,171 @@
             </div>
 
             <div class="col-md-3">
-                <button type="submit" class="btn btn-dark w-100">Ver semana</button>
+                <button type="submit" class="btn btn-dark w-100">
+                    Ver semana
+                </button>
             </div>
         </form>
     </div>
 </div>
 
 {% if jugador_seleccionado %}
-    <div class="card mb-4">
-        <div class="card-header fw-bold">
-            {{ jugador_seleccionado }}
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <h4 class="mb-1">{{ jugador_seleccionado }}</h4>
+            <p class="text-muted mb-0">
+                Semana del {{ inicio_semana|date:"d/m/Y" }} al {{ fin_semana|date:"d/m/Y" }}
+            </p>
         </div>
-        <div class="card-body">
-            {% if resumen %}
-                <div class="row g-3 mb-4">
-                    <div class="col-md-3">
-                        <div class="border rounded p-3 bg-white">
-                            <div class="text-muted small">Días programados</div>
-                            <div class="fs-4 fw-bold">{{ resumen.total_dias_programados }}</div>
-                        </div>
-                    </div>
 
-                    <div class="col-md-3">
-                        <div class="border rounded p-3 bg-white">
-                            <div class="text-muted small">Asistencias</div>
-                            <div class="fs-4 fw-bold">{{ resumen.total_asistencias }}</div>
-                        </div>
-                    </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'seguimiento_semanal' %}?jugador={{ jugador_seleccionado.id }}&fecha={{ semana_anterior|date:'Y-m-d' }}"
+               class="btn btn-outline-secondary">
+                ← Semana anterior
+            </a>
 
-                    <div class="col-md-3">
-                        <div class="border rounded p-3 bg-white">
-                            <div class="text-muted small">Tardes</div>
-                            <div class="fs-4 fw-bold">{{ resumen.total_tardes }}</div>
-                        </div>
-                    </div>
+            <a href="{% url 'seguimiento_semanal' %}?jugador={{ jugador_seleccionado.id }}&fecha={{ semana_siguiente|date:'Y-m-d' }}"
+               class="btn btn-outline-secondary">
+                Semana siguiente →
+            </a>
+        </div>
+    </div>
 
-                    <div class="col-md-3">
-                        <div class="border rounded p-3 bg-white">
-                            <div class="text-muted small">% asistencia</div>
-                            <div class="fs-4 fw-bold">{{ resumen.porcentaje }}%</div>
-                        </div>
+    {% if resumen %}
+        <div class="row g-3 mb-4">
+            <div class="col-md-2 col-6">
+                <div class="card text-center shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Días cargados</div>
+                        <div class="fs-3 fw-bold">{{ resumen.total_dias_programados }}</div>
                     </div>
                 </div>
-            {% endif %}
+            </div>
+
+            <div class="col-md-2 col-6">
+                <div class="card text-center shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Presentes</div>
+                        <div class="fs-3 fw-bold text-success">{{ resumen.total_presentes }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-2 col-6">
+                <div class="card text-center shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Tardes</div>
+                        <div class="fs-3 fw-bold text-warning">{{ resumen.total_tardes }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-2 col-6">
+                <div class="card text-center shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Ausencias</div>
+                        <div class="fs-3 fw-bold text-danger">{{ resumen.total_ausencias }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-2 col-6">
+                <div class="card text-center shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Ejercicios</div>
+                        <div class="fs-3 fw-bold">{{ resumen.total_ejercicios }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-2 col-6">
+                <div class="card text-center shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">% asistencia</div>
+                        <div class="fs-3 fw-bold">{{ resumen.porcentaje }}%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                <div>
+                    <h4 class="mb-1">Detalle de la semana</h4>
+                    <p class="text-muted mb-0">
+                        Asistencia, turnos y ejercicios cargados por día.
+                    </p>
+                </div>
+
+                <span class="badge bg-dark fs-6">
+                    {{ filas|length }} días
+                </span>
+            </div>
 
             <div class="table-responsive">
-                <table class="table table-bordered align-middle">
-                    <thead class="table-light">
+                <table class="table align-middle">
+                    <thead>
                         <tr>
                             <th>Día</th>
-                            <th>Asistencia</th>
+                            <th class="text-center">Asistencia</th>
+                            <th class="text-center">Turnos</th>
                             <th>Ejercicios</th>
-                            <th>Turnos</th>
                         </tr>
                     </thead>
+
                     <tbody>
                         {% for fila in filas %}
                             <tr>
-                                <td>{{ fila.dia|date:"l j/m" }}</td>
-                                <td>{{ fila.asistencia }}</td>
+                                <td>
+                                    <strong>{{ fila.dia|date:"l" }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ fila.dia|date:"d/m/Y" }}</small>
+                                </td>
+
+                                <td class="text-center">
+                                    <span class="badge bg-{{ fila.asistencia_clase }}">
+                                        {{ fila.asistencia_texto }}
+                                    </span>
+                                </td>
+
+                                <td class="text-center">
+                                    {{ fila.turnos }}
+                                </td>
+
                                 <td>
                                     {% if fila.ejercicios_por_categoria %}
+                                        <div class="mb-2">
+                                            <span class="badge bg-primary">
+                                                {{ fila.cantidad_ejercicios }} ejercicio{{ fila.cantidad_ejercicios|pluralize:"s" }}
+                                            </span>
+                                        </div>
+
                                         <div class="d-flex flex-column gap-2">
                                             {% for categoria, ejercicios in fila.ejercicios_por_categoria.items %}
-                                                <div class="categoria-ejercicios-box">
-                                                    <div class="categoria-ejercicios-header">
+                                                <div class="border rounded p-2 bg-light">
+                                                    <div class="fw-bold small mb-2">
                                                         {{ categoria }}
                                                     </div>
-                                                    <div class="d-flex flex-wrap gap-1 mt-2">
+
+                                                    <div class="d-flex flex-wrap gap-1">
                                                         {% for ejercicio in ejercicios %}
-                                                            <span class="badge-ejercicio">{{ ejercicio }}</span>
+                                                            <span class="badge bg-white text-dark border">
+                                                                {{ ejercicio }}
+                                                            </span>
                                                         {% endfor %}
                                                     </div>
                                                 </div>
                                             {% endfor %}
                                         </div>
                                     {% else %}
-                                        <span class="text-muted">-</span>
+                                        <span class="text-muted">
+                                            Sin ejercicios cargados
+                                        </span>
                                     {% endif %}
                                 </td>
-                                <td>{{ fila.turnos }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -114,6 +208,18 @@
             </div>
         </div>
     </div>
+
+{% else %}
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body text-center py-5">
+            <h4 class="mb-2">Seleccioná un jugador</h4>
+            <p class="text-muted mb-0">
+                Elegí un jugador y una fecha para ver su seguimiento semanal.
+            </p>
+        </div>
+    </div>
+
 {% endif %}
 
 {% endblock %}
