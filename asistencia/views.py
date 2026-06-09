@@ -23,23 +23,46 @@ def obtener_o_crear_entrenamiento(fecha, turno):
 
 
 def inicio(request):
-    hoy = timezone.localdate()
+    fecha_str = request.GET.get("fecha")
+
+    if fecha_str:
+        try:
+            fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
+        except ValueError:
+            fecha = timezone.localdate()
+    else:
+        fecha = timezone.localdate()
 
     turnos_info = []
+    total_cargados_dia = 0
+    total_marcados_dia = 0
+
     for turno in [1, 2, 3]:
-        entrenamiento = obtener_o_crear_entrenamiento(hoy, turno)
+        entrenamiento = obtener_o_crear_entrenamiento(fecha, turno)
         cantidad_jugadores = Asistencia.objects.filter(entrenamiento=entrenamiento).count()
+        cantidad_marcados = Asistencia.objects.filter(
+            entrenamiento=entrenamiento
+        ).exclude(estado="pendiente").count()
+
+        total_cargados_dia += cantidad_jugadores
+        total_marcados_dia += cantidad_marcados
 
         turnos_info.append({
             "turno": turno,
             "cantidad_jugadores": cantidad_jugadores,
+            "cantidad_marcados": cantidad_marcados,
         })
 
     contexto = {
-        "hoy": hoy,
+        "fecha": fecha,
+        "hoy": timezone.localdate(),
+        "ayer": fecha - timedelta(days=1),
+        "maniana": fecha + timedelta(days=1),
         "turnos_info": turnos_info,
         "total_jugadores": Jugador.objects.filter(activo=True).count(),
         "total_ejercicios": Ejercicio.objects.filter(activo=True).count(),
+        "total_cargados_dia": total_cargados_dia,
+        "total_marcados_dia": total_marcados_dia,
     }
     return render(request, "asistencia/inicio.html", contexto)
 
@@ -288,9 +311,9 @@ def cargar_ejercicios(request):
         "jugadores": jugadores,
         "jugador_seleccionado": jugador_seleccionado,
         "fecha": fecha,
+        "hoy": timezone.localdate(),
         "ejercicios_por_categoria": ejercicios_por_categoria,
         "ejercicios_guardados": ejercicios_guardados,
-        "hoy": timezone.localdate(),
     }
     return render(request, "asistencia/cargar_ejercicios.html", contexto)
 

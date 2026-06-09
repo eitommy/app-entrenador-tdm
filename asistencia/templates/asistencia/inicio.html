@@ -2,17 +2,74 @@
 
 {% block content %}
 
-<div class="mb-4">
-    <h1 class="mb-1">Panel del entrenador</h1>
-    <p class="text-muted mb-2">{{ hoy|date:"l j F Y" }}</p>
-    <p class="mb-0 text-secondary">
-        Gestioná la asistencia, los ejercicios y el seguimiento semanal de tus jugadores desde un solo lugar.
-    </p>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <h1 class="mb-1">Panel del entrenador</h1>
+        <p class="text-muted mb-2">{{ fecha|date:"l j F Y" }}</p>
+        <p class="mb-0 text-secondary">
+            Gestioná la asistencia, los ejercicios y el seguimiento semanal de tus jugadores desde un solo lugar.
+        </p>
+    </div>
+</div>
+
+<div class="card mb-4 shadow-sm border-0 card-fecha-panel">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+            <div>
+                <h5 class="mb-1">Fecha de trabajo</h5>
+                <p class="text-muted mb-0">Elegí el día que querés revisar o cargar.</p>
+            </div>
+
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{% url 'inicio' %}?fecha={{ ayer|date:'Y-m-d' }}" class="btn btn-outline-secondary">
+                    ← Ayer
+                </a>
+                <a href="{% url 'inicio' %}?fecha={{ hoy|date:'Y-m-d' }}" class="btn btn-dark">
+                    Hoy
+                </a>
+                <a href="{% url 'inicio' %}?fecha={{ maniana|date:'Y-m-d' }}" class="btn btn-outline-secondary">
+                    Mañana →
+                </a>
+            </div>
+        </div>
+
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-9">
+                <label class="form-label">Seleccionar fecha</label>
+                <input type="date" name="fecha" class="form-control form-control-fecha" value="{{ fecha|date:'Y-m-d' }}" required>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    Ir a esa fecha
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card text-center shadow-sm border-0">
+            <div class="card-body">
+                <div class="text-muted small">Jugadores cargados ese día</div>
+                <div class="fs-3 fw-bold">{{ total_cargados_dia }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card text-center shadow-sm border-0">
+            <div class="card-body">
+                <div class="text-muted small">Asistencias ya marcadas</div>
+                <div class="fs-3 fw-bold">{{ total_marcados_dia }}</div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="card mb-4 shadow-sm border-0">
     <div class="card-body">
-        <h4 class="mb-3">Asistencia de hoy</h4>
+        <h4 class="mb-3">Asistencia del día</h4>
 
         <div class="row g-3">
             {% for item in turnos_info %}
@@ -20,11 +77,16 @@
                     <div class="card h-100 border-0 shadow-sm card-turno-home">
                         <div class="card-body">
                             <h5 class="mb-2">Turno {{ item.turno }}</h5>
-                            <p class="text-muted mb-3">
+
+                            <p class="text-muted mb-1">
                                 {{ item.cantidad_jugadores }} jugador{{ item.cantidad_jugadores|pluralize:"es" }} cargado{{ item.cantidad_jugadores|pluralize:"s" }}
                             </p>
 
-                            <a href="{% url 'dia_turno' hoy|date:'Y-m-d' item.turno %}"
+                            <p class="text-muted mb-3">
+                                {{ item.cantidad_marcados }} marcado{{ item.cantidad_marcados|pluralize:"s" }}
+                            </p>
+
+                            <a href="{% url 'dia_turno' fecha|date:'Y-m-d' item.turno %}"
                                class="btn {% if item.turno == 1 %}btn-primary{% elif item.turno == 2 %}btn-warning{% else %}btn-success{% endif %} w-100 py-2">
                                 Ir a asistencia
                             </a>
@@ -34,7 +96,7 @@
             {% endfor %}
 
             <div class="col-12">
-                <a href="{% url 'cargar_ejercicios' %}?fecha={{ hoy|date:'Y-m-d' }}"
+                <a href="{% url 'cargar_ejercicios' %}?fecha={{ fecha|date:'Y-m-d' }}"
                    class="btn btn-dark w-100 py-3 mt-1">
                     Cargar ejercicios del día
                 </a>

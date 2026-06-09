@@ -1,0 +1,135 @@
+{% extends "asistencia/base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <h2 class="mb-1">{{ jugador }}</h2>
+        {% if jugador.activo %}
+            <span class="badge bg-success">Jugador activo</span>
+        {% else %}
+            <span class="badge bg-secondary">Jugador inactivo</span>
+        {% endif %}
+    </div>
+
+    <div>
+        <a href="{% url 'lista_jugadores' %}" class="btn btn-outline-dark">
+            Volver a jugadores
+        </a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card card-resumen text-center p-3 h-100">
+            <div class="text-muted small">Asistencia</div>
+            <div class="fs-3 fw-bold">{{ porcentaje }}%</div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-resumen text-center p-3 h-100">
+            <div class="text-muted small">Asistió</div>
+            <div class="fs-3 fw-bold text-success">{{ asistio }}</div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-resumen text-center p-3 h-100">
+            <div class="text-muted small">Ausente</div>
+            <div class="fs-3 fw-bold text-danger">{{ ausente }}</div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-resumen text-center p-3 h-100">
+            <div class="text-muted small">Tarde</div>
+            <div class="fs-3 fw-bold text-warning">{{ tarde }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-body">
+                <h4 class="mb-3">Asistencia reciente</h4>
+
+                {% if asistencias_recientes %}
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Turno</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for a in asistencias_recientes %}
+                                    <tr>
+                                        <td>{{ a.entrenamiento.fecha|date:"j M Y" }}</td>
+                                        <td>{{ a.entrenamiento.turno }}</td>
+                                        <td>
+                                            {% if a.estado == "asistio" %}
+                                                <span class="badge bg-success">Asistió</span>
+                                            {% elif a.estado == "ausente" %}
+                                                <span class="badge bg-danger">Ausente</span>
+                                            {% elif a.estado == "tarde" %}
+                                                <span class="badge bg-warning text-dark">Tarde</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Pendiente</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">Todavía no hay asistencias cargadas.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-body">
+                <h4 class="mb-3">Ejercicios recientes</h4>
+
+                {% if ejercicios_por_fecha %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for bloque in ejercicios_por_fecha %}
+                            <div class="bloque-fecha-ejercicios">
+                                <div class="bloque-fecha-titulo">
+                                    {{ bloque.fecha|date:"l j F Y" }}
+                                </div>
+
+                                <div class="d-flex flex-column gap-2 mt-2">
+                                    {% for categoria, ejercicios in bloque.categorias.items %}
+                                        <div class="categoria-ejercicios-box">
+                                            <div class="categoria-ejercicios-header">
+                                                {{ categoria }}
+                                            </div>
+
+                                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                                {% for ejercicio in ejercicios %}
+                                                    <span class="badge-ejercicio">{{ ejercicio }}</span>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">Todavía no hay ejercicios cargados.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

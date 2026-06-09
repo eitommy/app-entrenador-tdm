@@ -2,17 +2,28 @@
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
     <div>
         <h2 class="mb-1">Cargar ejercicios</h2>
-        <p class="text-muted mb-0">Elegí jugador y fecha para cargar el trabajo del día.</p>
+        <p class="text-muted mb-0">{{ fecha|date:"l j F Y" }}</p>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'cargar_ejercicios' %}?fecha={{ hoy|date:'Y-m-d' }}{% if jugador_seleccionado %}&jugador={{ jugador_seleccionado.id }}{% endif %}" class="btn btn-dark">
+    Hoy
+</a>
     </div>
 </div>
 
-<div class="card mb-4">
+<div class="card mb-4 shadow-sm border-0 card-fecha-panel">
     <div class="card-body">
+        <div class="mb-3">
+            <h5 class="mb-1">Seleccionar jugador y fecha</h5>
+            <p class="text-muted mb-0">Elegí a quién querés cargarle ejercicios y en qué día.</p>
+        </div>
+
         <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-6">
+            <div class="col-md-5">
                 <label class="form-label">Jugador</label>
                 <select name="jugador" class="form-select" required>
                     <option value="">Seleccionar jugador</option>
@@ -24,20 +35,20 @@
                 </select>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-5">
                 <label class="form-label">Fecha</label>
-                <input type="date" name="fecha" class="form-control" value="{{ fecha|date:'Y-m-d' }}" required>
+                <input type="date" name="fecha" class="form-control form-control-fecha" value="{{ fecha|date:'Y-m-d' }}" required>
             </div>
 
             <div class="col-md-2">
-                <button type="submit" class="btn btn-dark w-100">Cargar</button>
+                <button type="submit" class="btn btn-outline-primary w-100">Cargar</button>
             </div>
         </form>
     </div>
 </div>
 
 {% if jugador_seleccionado %}
-    <div class="card mb-4">
+    <div class="card mb-4 shadow-sm border-0">
         <div class="card-body">
             <h4 class="mb-1">{{ jugador_seleccionado }}</h4>
             <p class="text-muted mb-0">{{ fecha|date:"l j F Y" }}</p>
@@ -51,9 +62,9 @@
 
         <div class="accordion" id="accordionEjercicios">
 
-            <div class="accordion-item mb-3 border rounded">
+            <div class="accordion-item mb-3 border rounded categoria-movilidad">
                 <h2 class="accordion-header">
-                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#movilidad">
+                    <button class="accordion-button categoria-btn categoria-btn-movilidad" type="button" data-bs-toggle="collapse" data-bs-target="#movilidad">
                         Movilidad
                     </button>
                 </h2>
@@ -62,7 +73,7 @@
                         <div class="row">
                             {% for ejercicio in ejercicios_por_categoria.Movilidad %}
                                 <div class="col-md-6 mb-2">
-                                    <label class="ejercicio-option" for="ej_{{ ejercicio.id }}">
+                                    <label class="ejercicio-option ejercicio-option-movilidad" for="ej_{{ ejercicio.id }}">
                                         <input
                                             class="form-check-input"
                                             type="checkbox"
@@ -82,9 +93,9 @@
                 </div>
             </div>
 
-            <div class="accordion-item mb-3 border rounded">
+            <div class="accordion-item mb-3 border rounded categoria-reaccion">
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#reaccion">
+                    <button class="accordion-button collapsed categoria-btn categoria-btn-reaccion" type="button" data-bs-toggle="collapse" data-bs-target="#reaccion">
                         Reacción
                     </button>
                 </h2>
@@ -93,7 +104,7 @@
                         <div class="row">
                             {% for ejercicio in ejercicios_por_categoria.Reacción %}
                                 <div class="col-md-6 mb-2">
-                                    <label class="ejercicio-option" for="ej_{{ ejercicio.id }}">
+                                    <label class="ejercicio-option ejercicio-option-reaccion" for="ej_{{ ejercicio.id }}">
                                         <input
                                             class="form-check-input"
                                             type="checkbox"
@@ -113,9 +124,9 @@
                 </div>
             </div>
 
-            <div class="accordion-item mb-3 border rounded">
+            <div class="accordion-item mb-3 border rounded categoria-saque">
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#saque">
+                    <button class="accordion-button collapsed categoria-btn categoria-btn-saque" type="button" data-bs-toggle="collapse" data-bs-target="#saque">
                         Saque
                     </button>
                 </h2>
@@ -124,7 +135,7 @@
                         <div class="row">
                             {% for ejercicio in ejercicios_por_categoria.Saque %}
                                 <div class="col-md-6 mb-2">
-                                    <label class="ejercicio-option" for="ej_{{ ejercicio.id }}">
+                                    <label class="ejercicio-option ejercicio-option-saque" for="ej_{{ ejercicio.id }}">
                                         <input
                                             class="form-check-input"
                                             type="checkbox"
@@ -144,9 +155,9 @@
                 </div>
             </div>
 
-            <div class="accordion-item mb-3 border rounded">
+            <div class="accordion-item mb-3 border rounded categoria-recepcion">
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#recepcion">
+                    <button class="accordion-button collapsed categoria-btn categoria-btn-recepcion" type="button" data-bs-toggle="collapse" data-bs-target="#recepcion">
                         Recepción
                     </button>
                 </h2>
@@ -155,7 +166,7 @@
                         <div class="row">
                             {% for ejercicio in ejercicios_por_categoria.Recepción %}
                                 <div class="col-md-6 mb-2">
-                                    <label class="ejercicio-option" for="ej_{{ ejercicio.id }}">
+                                    <label class="ejercicio-option ejercicio-option-recepcion" for="ej_{{ ejercicio.id }}">
                                         <input
                                             class="form-check-input"
                                             type="checkbox"

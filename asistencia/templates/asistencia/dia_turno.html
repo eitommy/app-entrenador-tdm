@@ -4,11 +4,12 @@
 
 <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
     <div>
         <h2 class="mb-1">Asistencia del día</h2>
         <p class="text-muted mb-0">{{ fecha|date:"j F Y" }}</p>
     </div>
+
     <div class="d-flex gap-2 flex-wrap">
         <a class="btn btn-outline-secondary" href="{% url 'dia_turno' ayer|date:'Y-m-d' turno %}">← Ayer</a>
         <a class="btn btn-dark" href="{% url 'dia_turno' hoy|date:'Y-m-d' turno %}">Hoy</a>
@@ -16,16 +17,21 @@
     </div>
 </div>
 
-<div class="card mb-4">
-    <div class="card-header fw-bold">Ir directo a una fecha</div>
+<div class="card mb-4 shadow-sm border-0 card-fecha-panel">
     <div class="card-body">
-        <form method="get" action="{% url 'ir_a_fecha_asistencia' %}" class="row g-2">
-            <div class="col-md-8">
-                <input type="date" name="fecha" class="form-control" value="{{ fecha|date:'Y-m-d' }}" required>
+        <div class="mb-3">
+            <h5 class="mb-1">Cambiar fecha</h5>
+            <p class="text-muted mb-0">Movete rápido entre días o elegí uno exacto.</p>
+        </div>
+
+        <form method="get" action="{% url 'ir_a_fecha_asistencia' %}" class="row g-2 align-items-end">
+            <div class="col-md-9">
+                <label class="form-label">Seleccionar fecha</label>
+                <input type="date" name="fecha" class="form-control form-control-fecha" value="{{ fecha|date:'Y-m-d' }}" required>
                 <input type="hidden" name="turno" value="{{ turno }}">
             </div>
-            <div class="col-md-4">
-                <button type="submit" class="btn btn-outline-primary w-100">Ir</button>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-outline-primary w-100">Ir a esa fecha</button>
             </div>
         </form>
     </div>
@@ -47,9 +53,9 @@
         Turno 3
     </a>
 
-    <a class="btn btn-outline-dark" href="{% url 'cargar_ejercicios' %}">
-    Cargar ejercicios
-</a>
+    <a class="btn btn-outline-dark" href="{% url 'cargar_ejercicios' %}?fecha={{ fecha|date:'Y-m-d' }}">
+        Cargar ejercicios
+    </a>
 </div>
 
 <div class="mb-3 d-flex gap-2 flex-wrap">

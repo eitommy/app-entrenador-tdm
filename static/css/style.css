@@ -377,3 +377,11 @@ table th {
     border-color: #93c5fd;
     box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.15);
 }
+
+.card-fecha-panel {
+    border-radius: 18px;
+}
+
+.form-control-fecha {
+    font-weight: 600;
+}
