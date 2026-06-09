@@ -1,20 +1,16 @@
 from datetime import datetime, timedelta
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from django.contrib.auth import login
 
-from .forms import JugadorForm, EjercicioForm
-from .models import (
-    Asistencia,
-    Ejercicio,
-    EjercicioRealizado,
-    Entrenamiento,
-    Jugador,
-)
+from .forms import EjercicioForm, EntrenamientoInfoForm, JugadorForm, RegistroEntrenadorForm
+from .models import Asistencia, Ejercicio, EjercicioRealizado, Entrenamiento, Jugador
 
 
 def obtener_o_crear_entrenamiento(fecha, turno):
@@ -22,6 +18,31 @@ def obtener_o_crear_entrenamiento(fecha, turno):
     return entrenamiento
 
 
+def nombre_entrenador(entrenamiento):
+    if entrenamiento.entrenador:
+        return entrenamiento.entrenador.get_full_name() or entrenamiento.entrenador.username
+    return "Sin entrenador"
+
+
+def asignar_entrenador_si_vacio(entrenamiento, user):
+    if user.is_authenticated and entrenamiento.entrenador is None:
+        entrenamiento.entrenador = user
+        entrenamiento.save()
+
+def registro(request):
+    if request.method == "POST":
+        form = RegistroEntrenadorForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            messages.success(request, "Cuenta creada correctamente.")
+            return redirect("inicio")
+    else:
+        form = RegistroEntrenadorForm()
+
+    return render(request, "registration/register.html", {"form": form})
+
+@login_required
 def inicio(request):
     fecha_str = request.GET.get("fecha")
 
@@ -39,10 +60,11 @@ def inicio(request):
 
     for turno in [1, 2, 3]:
         entrenamiento = obtener_o_crear_entrenamiento(fecha, turno)
+
         cantidad_jugadores = Asistencia.objects.filter(entrenamiento=entrenamiento).count()
-        cantidad_marcados = Asistencia.objects.filter(
-            entrenamiento=entrenamiento
-        ).exclude(estado="pendiente").count()
+        cantidad_marcados = Asistencia.objects.filter(entrenamiento=entrenamiento).exclude(
+            estado="pendiente"
+        ).count()
 
         total_cargados_dia += cantidad_jugadores
         total_marcados_dia += cantidad_marcados
@@ -51,6 +73,8 @@ def inicio(request):
             "turno": turno,
             "cantidad_jugadores": cantidad_jugadores,
             "cantidad_marcados": cantidad_marcados,
+            "entrenador": nombre_entrenador(entrenamiento),
+            "observaciones": entrenamiento.observaciones,
         })
 
     contexto = {
@@ -66,6 +90,8 @@ def inicio(request):
     }
     return render(request, "asistencia/inicio.html", contexto)
 
+
+@login_required
 def ir_a_fecha_asistencia(request):
     fecha_str = request.GET.get("fecha")
     turno = request.GET.get("turno", 1)
@@ -76,6 +102,7 @@ def ir_a_fecha_asistencia(request):
     return redirect("dia_turno", fecha_str=fecha_str, turno=int(turno))
 
 
+@login_required
 def dia_turno(request, fecha_str, turno):
     fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
     turno = int(turno)
@@ -89,6 +116,8 @@ def dia_turno(request, fecha_str, turno):
 
     contexto = {
         "entrenamiento": entrenamiento,
+        "entrenamiento_form": EntrenamientoInfoForm(instance=entrenamiento),
+        "nombre_entrenador": nombre_entrenador(entrenamiento),
         "asistencias": asistencias,
         "jugadores_disponibles": jugadores_disponibles,
         "fecha": fecha,
@@ -100,32 +129,64 @@ def dia_turno(request, fecha_str, turno):
     return render(request, "asistencia/dia_turno.html", contexto)
 
 
+@login_required
+@require_POST
+def guardar_info_entrenamiento(request, entrenamiento_id):
+    entrenamiento = get_object_or_404(Entrenamiento, id=entrenamiento_id)
+    form = EntrenamientoInfoForm(request.POST, instance=entrenamiento)
+
+    if form.is_valid():
+        entrenamiento = form.save(commit=False)
+        entrenamiento.entrenador = request.user
+        entrenamiento.save()
+        messages.success(request, "Información del turno guardada correctamente.")
+    else:
+        messages.error(request, "No se pudo guardar la información del turno.")
+
+    return redirect(
+        "dia_turno",
+        fecha_str=entrenamiento.fecha.isoformat(),
+        turno=entrenamiento.turno,
+    )
+
+
+@login_required
 @require_POST
 def agregar_jugador(request, entrenamiento_id):
     entrenamiento = get_object_or_404(Entrenamiento, id=entrenamiento_id)
+    asignar_entrenador_si_vacio(entrenamiento, request.user)
+
     jugador_id = request.POST.get("jugador_id")
     jugador = get_object_or_404(Jugador, id=jugador_id, activo=True)
 
     Asistencia.objects.get_or_create(jugador=jugador, entrenamiento=entrenamiento)
-    return redirect("dia_turno", fecha_str=entrenamiento.fecha.isoformat(), turno=entrenamiento.turno)
+
+    return redirect(
+        "dia_turno",
+        fecha_str=entrenamiento.fecha.isoformat(),
+        turno=entrenamiento.turno,
+    )
 
 
+@login_required
 @require_POST
 def copiar_lista_ayer(request, entrenamiento_id):
     entrenamiento_actual = get_object_or_404(Entrenamiento, id=entrenamiento_id)
+    asignar_entrenador_si_vacio(entrenamiento_actual, request.user)
+
     fecha_ayer = entrenamiento_actual.fecha - timedelta(days=1)
 
     try:
         entrenamiento_ayer = Entrenamiento.objects.get(
             fecha=fecha_ayer,
-            turno=entrenamiento_actual.turno
+            turno=entrenamiento_actual.turno,
         )
     except Entrenamiento.DoesNotExist:
         messages.warning(request, "No hay lista del día anterior para copiar.")
         return redirect(
             "dia_turno",
             fecha_str=entrenamiento_actual.fecha.isoformat(),
-            turno=entrenamiento_actual.turno
+            turno=entrenamiento_actual.turno,
         )
 
     asistencias_ayer = Asistencia.objects.filter(entrenamiento=entrenamiento_ayer)
@@ -135,7 +196,7 @@ def copiar_lista_ayer(request, entrenamiento_id):
         _, created = Asistencia.objects.get_or_create(
             jugador=asistencia.jugador,
             entrenamiento=entrenamiento_actual,
-            defaults={"estado": "pendiente"}
+            defaults={"estado": "pendiente"},
         )
         if created:
             copiados += 1
@@ -148,37 +209,50 @@ def copiar_lista_ayer(request, entrenamiento_id):
     return redirect(
         "dia_turno",
         fecha_str=entrenamiento_actual.fecha.isoformat(),
-        turno=entrenamiento_actual.turno
+        turno=entrenamiento_actual.turno,
     )
 
 
+@login_required
 @require_POST
 def marcar_todos_asistieron(request, entrenamiento_id):
     entrenamiento = get_object_or_404(Entrenamiento, id=entrenamiento_id)
+    asignar_entrenador_si_vacio(entrenamiento, request.user)
+
     Asistencia.objects.filter(entrenamiento=entrenamiento).update(estado="asistio")
 
     messages.success(request, "Todos los jugadores quedaron como asistieron.")
     return redirect(
         "dia_turno",
         fecha_str=entrenamiento.fecha.isoformat(),
-        turno=entrenamiento.turno
+        turno=entrenamiento.turno,
     )
 
 
+@login_required
 @require_POST
 def quitar_jugador(request, asistencia_id):
     asistencia = get_object_or_404(Asistencia, id=asistencia_id)
     entrenamiento = asistencia.entrenamiento
+    asignar_entrenador_si_vacio(entrenamiento, request.user)
+
     asistencia.delete()
-    return redirect("dia_turno", fecha_str=entrenamiento.fecha.isoformat(), turno=entrenamiento.turno)
+    return redirect(
+        "dia_turno",
+        fecha_str=entrenamiento.fecha.isoformat(),
+        turno=entrenamiento.turno,
+    )
 
 
+@login_required
 @require_POST
 def cambiar_estado(request, asistencia_id):
     asistencia = get_object_or_404(Asistencia, id=asistencia_id)
-    estado_nuevo = request.POST.get("estado")
+    asignar_entrenador_si_vacio(asistencia.entrenamiento, request.user)
 
+    estado_nuevo = request.POST.get("estado")
     estados_validos = {"asistio", "ausente", "tarde"}
+
     if estado_nuevo not in estados_validos:
         return JsonResponse({"ok": False}, status=400)
 
@@ -195,11 +269,13 @@ def cambiar_estado(request, asistencia_id):
     })
 
 
+@login_required
 def lista_jugadores(request):
     jugadores = Jugador.objects.all()
     return render(request, "asistencia/lista_jugadores.html", {"jugadores": jugadores})
 
 
+@login_required
 def crear_jugador(request):
     if request.method == "POST":
         form = JugadorForm(request.POST)
@@ -212,10 +288,11 @@ def crear_jugador(request):
 
     return render(request, "asistencia/form_jugador.html", {
         "form": form,
-        "titulo": "Agregar jugador"
+        "titulo": "Agregar jugador",
     })
 
 
+@login_required
 def editar_jugador(request, pk):
     jugador = get_object_or_404(Jugador, pk=pk)
 
@@ -230,15 +307,17 @@ def editar_jugador(request, pk):
 
     return render(request, "asistencia/form_jugador.html", {
         "form": form,
-        "titulo": "Editar jugador"
+        "titulo": "Editar jugador",
     })
 
 
+@login_required
 def lista_ejercicios(request):
     ejercicios = Ejercicio.objects.all()
     return render(request, "asistencia/lista_ejercicios.html", {"ejercicios": ejercicios})
 
 
+@login_required
 def crear_ejercicio(request):
     if request.method == "POST":
         form = EjercicioForm(request.POST)
@@ -251,10 +330,11 @@ def crear_ejercicio(request):
 
     return render(request, "asistencia/form_ejercicio.html", {
         "form": form,
-        "titulo": "Agregar ejercicio"
+        "titulo": "Agregar ejercicio",
     })
 
 
+@login_required
 def editar_ejercicio(request, pk):
     ejercicio = get_object_or_404(Ejercicio, pk=pk)
 
@@ -269,10 +349,11 @@ def editar_ejercicio(request, pk):
 
     return render(request, "asistencia/form_ejercicio.html", {
         "form": form,
-        "titulo": "Editar ejercicio"
+        "titulo": "Editar ejercicio",
     })
 
 
+@login_required
 def cargar_ejercicios(request):
     jugadores = Jugador.objects.filter(activo=True).order_by("apellido", "nombre")
 
@@ -291,10 +372,22 @@ def cargar_ejercicios(request):
     ejercicios_guardados = []
 
     ejercicios_por_categoria = {
-        "Movilidad": Ejercicio.objects.filter(categoria=Ejercicio.Categoria.MOVILIDAD, activo=True),
-        "Reacción": Ejercicio.objects.filter(categoria=Ejercicio.Categoria.REACCION, activo=True),
-        "Saque": Ejercicio.objects.filter(categoria=Ejercicio.Categoria.SAQUE, activo=True),
-        "Recepción": Ejercicio.objects.filter(categoria=Ejercicio.Categoria.RECEPCION, activo=True),
+        "Movilidad": Ejercicio.objects.filter(
+            categoria=Ejercicio.Categoria.MOVILIDAD,
+            activo=True,
+        ),
+        "Reacción": Ejercicio.objects.filter(
+            categoria=Ejercicio.Categoria.REACCION,
+            activo=True,
+        ),
+        "Saque": Ejercicio.objects.filter(
+            categoria=Ejercicio.Categoria.SAQUE,
+            activo=True,
+        ),
+        "Recepción": Ejercicio.objects.filter(
+            categoria=Ejercicio.Categoria.RECEPCION,
+            activo=True,
+        ),
     }
 
     if jugador_id:
@@ -303,7 +396,7 @@ def cargar_ejercicios(request):
             ejercicios_guardados = list(
                 EjercicioRealizado.objects.filter(
                     jugador=jugador_seleccionado,
-                    fecha=fecha
+                    fecha=fecha,
                 ).values_list("ejercicio_id", flat=True)
             )
 
@@ -318,6 +411,7 @@ def cargar_ejercicios(request):
     return render(request, "asistencia/cargar_ejercicios.html", contexto)
 
 
+@login_required
 @require_POST
 def guardar_ejercicios(request):
     jugador_id = request.POST.get("jugador_id")
@@ -333,7 +427,7 @@ def guardar_ejercicios(request):
 
     EjercicioRealizado.objects.filter(
         jugador=jugador,
-        fecha=fecha
+        fecha=fecha,
     ).delete()
 
     for ejercicio_id in ejercicio_ids:
@@ -342,13 +436,14 @@ def guardar_ejercicios(request):
             EjercicioRealizado.objects.get_or_create(
                 jugador=jugador,
                 fecha=fecha,
-                ejercicio=ejercicio
+                ejercicio=ejercicio,
             )
 
     messages.success(request, f"Ejercicios guardados para {jugador}.")
     return redirect(f"/ejercicios/cargar/?jugador={jugador.id}&fecha={fecha.isoformat()}")
 
 
+@login_required
 def seguimiento_semanal(request):
     jugadores = Jugador.objects.filter(activo=True)
 
@@ -382,7 +477,7 @@ def seguimiento_semanal(request):
             for dia in dias_semana:
                 asistencias_dia = Asistencia.objects.filter(
                     jugador=jugador_seleccionado,
-                    entrenamiento__fecha=dia
+                    entrenamiento__fecha=dia,
                 ).select_related("entrenamiento")
 
                 turnos = list(asistencias_dia.values_list("entrenamiento__turno", flat=True))
@@ -402,8 +497,11 @@ def seguimiento_semanal(request):
 
                 ejercicios_qs = EjercicioRealizado.objects.filter(
                     jugador=jugador_seleccionado,
-                    fecha=dia
-                ).select_related("ejercicio").order_by("ejercicio__categoria", "ejercicio__nombre")
+                    fecha=dia,
+                ).select_related("ejercicio").order_by(
+                    "ejercicio__categoria",
+                    "ejercicio__nombre",
+                )
 
                 ejercicios_por_categoria = {}
                 for item in ejercicios_qs:
@@ -426,7 +524,10 @@ def seguimiento_semanal(request):
                     "ejercicios_por_categoria": ejercicios_por_categoria,
                 })
 
-            porcentaje = round((total_asistencias / total_dias_programados) * 100, 1) if total_dias_programados else 0
+            porcentaje = round(
+                (total_asistencias / total_dias_programados) * 100,
+                1,
+            ) if total_dias_programados else 0
 
             resumen = {
                 "total_dias_programados": total_dias_programados,
@@ -446,6 +547,7 @@ def seguimiento_semanal(request):
     return render(request, "asistencia/seguimiento_semanal.html", contexto)
 
 
+@login_required
 def reportes(request):
     hoy = timezone.localdate()
     inicio_semana = hoy - timedelta(days=hoy.weekday())
@@ -455,11 +557,11 @@ def reportes(request):
     for jugador in Jugador.objects.filter(activo=True):
         sem = Asistencia.objects.filter(
             jugador=jugador,
-            entrenamiento__fecha__range=[inicio_semana, hoy]
+            entrenamiento__fecha__range=[inicio_semana, hoy],
         )
         mes = Asistencia.objects.filter(
             jugador=jugador,
-            entrenamiento__fecha__range=[inicio_mes, hoy]
+            entrenamiento__fecha__range=[inicio_mes, hoy],
         )
 
         sem_total = sem.count()

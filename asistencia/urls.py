@@ -1,13 +1,16 @@
-from django.urls import path
+from django.urls import include, path
 from . import views
 
 urlpatterns = [
-    path("", views.inicio, name="inicio"),
+    path("accounts/", include("django.contrib.auth.urls")),
+    path("accounts/register/", views.registro, name="registro"),
 
+    path("", views.inicio, name="inicio"),
     path("ir-a-fecha-asistencia/", views.ir_a_fecha_asistencia, name="ir_a_fecha_asistencia"),
 
     path("dia/<str:fecha_str>/turno/<int:turno>/", views.dia_turno, name="dia_turno"),
 
+    path("entrenamiento/<int:entrenamiento_id>/guardar-info/", views.guardar_info_entrenamiento, name="guardar_info_entrenamiento"),
     path("entrenamiento/<int:entrenamiento_id>/agregar-jugador/", views.agregar_jugador, name="agregar_jugador"),
     path("entrenamiento/<int:entrenamiento_id>/copiar-ayer/", views.copiar_lista_ayer, name="copiar_lista_ayer"),
     path("entrenamiento/<int:entrenamiento_id>/todos-asistieron/", views.marcar_todos_asistieron, name="marcar_todos_asistieron"),

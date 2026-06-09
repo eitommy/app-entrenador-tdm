@@ -7,7 +7,10 @@
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
     <div>
         <h2 class="mb-1">Asistencia del día</h2>
-        <p class="text-muted mb-0">{{ fecha|date:"j F Y" }}</p>
+        <p class="text-muted mb-0">{{ fecha|date:"j F Y" }} — Turno {{ turno }}</p>
+        <p class="mb-0">
+            <strong>Entrenador:</strong> {{ nombre_entrenador }}
+        </p>
     </div>
 
     <div class="d-flex gap-2 flex-wrap">
@@ -56,6 +59,29 @@
     <a class="btn btn-outline-dark" href="{% url 'cargar_ejercicios' %}?fecha={{ fecha|date:'Y-m-d' }}">
         Cargar ejercicios
     </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header fw-bold">Información del turno</div>
+    <div class="card-body">
+        <form method="post" action="{% url 'guardar_info_entrenamiento' entrenamiento.id %}">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label">Entrenador responsable</label>
+                {{ entrenamiento_form.entrenador }}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Observaciones del turno</label>
+                {{ entrenamiento_form.observaciones }}
+            </div>
+
+            <button type="submit" class="btn btn-dark">
+                Guardar información
+            </button>
+        </form>
+    </div>
 </div>
 
 <div class="mb-3 d-flex gap-2 flex-wrap">

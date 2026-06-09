@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.db import models
 
 
@@ -22,13 +23,25 @@ class Entrenamiento(models.Model):
 
     fecha = models.DateField()
     turno = models.PositiveSmallIntegerField(choices=TURNOS)
+    entrenador = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="entrenamientos",
+    )
+    observaciones = models.TextField(blank=True)
 
     class Meta:
         unique_together = ("fecha", "turno")
         ordering = ["-fecha", "turno"]
 
     def __str__(self):
-        return f"{self.fecha} - Turno {self.turno}"
+        if self.entrenador:
+            nombre = self.entrenador.get_full_name() or self.entrenador.username
+        else:
+            nombre = "Sin entrenador"
+        return f"{self.fecha} - Turno {self.turno} - {nombre}"
 
 
 class Asistencia(models.Model):
@@ -59,11 +72,7 @@ class Ejercicio(models.Model):
         RECEPCION = "recepcion", "Recepción"
 
     nombre = models.CharField(max_length=150)
-    categoria = models.CharField(
-        max_length=20,
-        choices=Categoria.choices,
-        default=Categoria.MOVILIDAD,
-    )
+    categoria = models.CharField(max_length=20, choices=Categoria.choices, default=Categoria.MOVILIDAD)
     activo = models.BooleanField(default=True)
 
     class Meta:

@@ -78,13 +78,23 @@
                         <div class="card-body">
                             <h5 class="mb-2">Turno {{ item.turno }}</h5>
 
+                            <p class="mb-2">
+                                <strong>Entrenador:</strong> {{ item.entrenador }}
+                            </p>
+
                             <p class="text-muted mb-1">
                                 {{ item.cantidad_jugadores }} jugador{{ item.cantidad_jugadores|pluralize:"es" }} cargado{{ item.cantidad_jugadores|pluralize:"s" }}
                             </p>
 
-                            <p class="text-muted mb-3">
+                            <p class="text-muted mb-2">
                                 {{ item.cantidad_marcados }} marcado{{ item.cantidad_marcados|pluralize:"s" }}
                             </p>
+
+                            {% if item.observaciones %}
+                                <p class="text-muted small mb-3">
+                                    {{ item.observaciones|truncatechars:90 }}
+                                </p>
+                            {% endif %}
 
                             <a href="{% url 'dia_turno' fecha|date:'Y-m-d' item.turno %}"
                                class="btn {% if item.turno == 1 %}btn-primary{% elif item.turno == 2 %}btn-warning{% else %}btn-success{% endif %} w-100 py-2">
