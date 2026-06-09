@@ -401,6 +401,7 @@ def cargar_ejercicios(request):
 
     jugador_id = request.GET.get("jugador")
     fecha_str = request.GET.get("fecha")
+    turno_str = request.GET.get("turno")
 
     if fecha_str:
         try:
@@ -409,6 +410,15 @@ def cargar_ejercicios(request):
             fecha = timezone.localdate()
     else:
         fecha = timezone.localdate()
+
+    turno = None
+    if turno_str:
+        try:
+            turno_int = int(turno_str)
+            if turno_int in [1, 2, 3]:
+                turno = turno_int
+        except ValueError:
+            turno = None
 
     jugador_seleccionado = None
     ejercicios_guardados = []
@@ -447,6 +457,7 @@ def cargar_ejercicios(request):
         "jugador_seleccionado": jugador_seleccionado,
         "fecha": fecha,
         "hoy": timezone.localdate(),
+        "turno": turno,
         "ejercicios_por_categoria": ejercicios_por_categoria,
         "ejercicios_guardados": ejercicios_guardados,
     }
@@ -458,6 +469,7 @@ def cargar_ejercicios(request):
 def guardar_ejercicios(request):
     jugador_id = request.POST.get("jugador_id")
     fecha_str = request.POST.get("fecha")
+    turno_str = request.POST.get("turno")
     ejercicio_ids = request.POST.getlist("ejercicios")
 
     jugador = get_object_or_404(Jugador, id=jugador_id, activo=True)
@@ -466,6 +478,15 @@ def guardar_ejercicios(request):
         fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
     except ValueError:
         fecha = timezone.localdate()
+
+    turno = None
+    if turno_str:
+        try:
+            turno_int = int(turno_str)
+            if turno_int in [1, 2, 3]:
+                turno = turno_int
+        except ValueError:
+            turno = None
 
     EjercicioRealizado.objects.filter(
         jugador=jugador,
@@ -482,7 +503,12 @@ def guardar_ejercicios(request):
             )
 
     messages.success(request, f"Ejercicios guardados para {jugador}.")
-    return redirect(f"/ejercicios/cargar/?jugador={jugador.id}&fecha={fecha.isoformat()}")
+
+    url = f"/ejercicios/cargar/?jugador={jugador.id}&fecha={fecha.isoformat()}"
+    if turno:
+        url += f"&turno={turno}"
+
+    return redirect(url)
 
 
 @login_required
