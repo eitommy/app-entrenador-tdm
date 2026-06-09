@@ -64,13 +64,24 @@
 <div class="card mb-4">
     <div class="card-header fw-bold">Información del turno</div>
     <div class="card-body">
+
+        <div class="mb-3">
+            <p class="mb-2">
+                <strong>Entrenador responsable:</strong> {{ nombre_entrenador }}
+            </p>
+
+            {% if not entrenamiento.entrenador %}
+                <form method="post" action="{% url 'tomar_turno' entrenamiento.id %}" class="mb-3">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">
+                        Tomar este turno
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+
         <form method="post" action="{% url 'guardar_info_entrenamiento' entrenamiento.id %}">
             {% csrf_token %}
-
-            <div class="mb-3">
-                <label class="form-label">Entrenador responsable</label>
-                {{ entrenamiento_form.entrenador }}
-            </div>
 
             <div class="mb-3">
                 <label class="form-label">Observaciones del turno</label>
@@ -78,7 +89,7 @@
             </div>
 
             <button type="submit" class="btn btn-dark">
-                Guardar información
+                Guardar observaciones
             </button>
         </form>
     </div>
@@ -148,7 +159,12 @@
                 {% for item in asistencias %}
                     <div class="list-group-item attendance-row">
                         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-                            <div class="fw-semibold">{{ item.jugador }}</div>
+                            <div>
+                                <div class="fw-semibold">{{ item.jugador }}</div>
+                                <small class="text-muted">
+                                    Cargá los ejercicios realizados desde el botón Ejercicios.
+                                </small>
+                            </div>
 
                             <div class="d-flex flex-wrap gap-2">
                                 <button type="button"
@@ -171,6 +187,11 @@
                                         data-status="tarde">
                                     Tarde
                                 </button>
+
+                                <a class="btn btn-outline-primary"
+                                   href="{% url 'cargar_ejercicios' %}?jugador={{ item.jugador.id }}&fecha={{ fecha|date:'Y-m-d' }}">
+                                    Ejercicios
+                                </a>
 
                                 <form method="post" action="{% url 'quitar_jugador' item.id %}">
                                     {% csrf_token %}

@@ -1,13 +1,13 @@
 from datetime import datetime, timedelta
 
 from django.contrib import messages
+from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from django.contrib.auth import login
 
 from .forms import EjercicioForm, EntrenamientoInfoForm, JugadorForm, RegistroEntrenadorForm
 from .models import Asistencia, Ejercicio, EjercicioRealizado, Entrenamiento, Jugador
@@ -29,6 +29,7 @@ def asignar_entrenador_si_vacio(entrenamiento, user):
         entrenamiento.entrenador = user
         entrenamiento.save()
 
+
 def registro(request):
     if request.method == "POST":
         form = RegistroEntrenadorForm(request.POST)
@@ -41,6 +42,7 @@ def registro(request):
         form = RegistroEntrenadorForm()
 
     return render(request, "registration/register.html", {"form": form})
+
 
 @login_required
 def inicio(request):
@@ -131,17 +133,36 @@ def dia_turno(request, fecha_str, turno):
 
 @login_required
 @require_POST
+def tomar_turno(request, entrenamiento_id):
+    entrenamiento = get_object_or_404(Entrenamiento, id=entrenamiento_id)
+
+    if entrenamiento.entrenador is None:
+        entrenamiento.entrenador = request.user
+        entrenamiento.save()
+        messages.success(request, "Tomaste este turno correctamente.")
+    elif entrenamiento.entrenador == request.user:
+        messages.info(request, "Este turno ya está asignado a vos.")
+    else:
+        messages.warning(request, "Este turno ya fue tomado por otro entrenador.")
+
+    return redirect(
+        "dia_turno",
+        fecha_str=entrenamiento.fecha.isoformat(),
+        turno=entrenamiento.turno,
+    )
+
+
+@login_required
+@require_POST
 def guardar_info_entrenamiento(request, entrenamiento_id):
     entrenamiento = get_object_or_404(Entrenamiento, id=entrenamiento_id)
     form = EntrenamientoInfoForm(request.POST, instance=entrenamiento)
 
     if form.is_valid():
-        entrenamiento = form.save(commit=False)
-        entrenamiento.entrenador = request.user
-        entrenamiento.save()
-        messages.success(request, "Información del turno guardada correctamente.")
+        form.save()
+        messages.success(request, "Observaciones guardadas correctamente.")
     else:
-        messages.error(request, "No se pudo guardar la información del turno.")
+        messages.error(request, "No se pudieron guardar las observaciones.")
 
     return redirect(
         "dia_turno",

@@ -11,6 +11,7 @@ urlpatterns = [
     path("dia/<str:fecha_str>/turno/<int:turno>/", views.dia_turno, name="dia_turno"),
 
     path("entrenamiento/<int:entrenamiento_id>/guardar-info/", views.guardar_info_entrenamiento, name="guardar_info_entrenamiento"),
+    path("entrenamiento/<int:entrenamiento_id>/tomar-turno/", views.tomar_turno, name="tomar_turno"),
     path("entrenamiento/<int:entrenamiento_id>/agregar-jugador/", views.agregar_jugador, name="agregar_jugador"),
     path("entrenamiento/<int:entrenamiento_id>/copiar-ayer/", views.copiar_lista_ayer, name="copiar_lista_ayer"),
     path("entrenamiento/<int:entrenamiento_id>/todos-asistieron/", views.marcar_todos_asistieron, name="marcar_todos_asistieron"),
