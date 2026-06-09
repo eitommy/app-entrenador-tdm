@@ -611,8 +611,9 @@ def seguimiento_semanal(request):
                     asistencia_clase = "danger"
                     total_ausencias += 1
                 else:
-                    asistencia_texto = "Sin marcar"
-                    asistencia_clase = "secondary"
+                    asistencia_texto = "Sin actividad"
+                    asistencia_clase = "light text-dark"
+                    
 
                 ejercicios_qs = (
                     EjercicioRealizado.objects
