@@ -24,6 +24,7 @@
                 <a class="nav-link text-white" href="{% url 'cargar_ejercicios' %}">Cargar ejercicios</a>
                 <a class="nav-link text-white" href="{% url 'seguimiento_semanal' %}">Seguimiento</a>
                 <a class="nav-link text-white" href="{% url 'reportes' %}">Reportes</a>
+                <a class="nav-link text-white" href="{% url 'acerca' %}">Acerca</a>
 
                 <span class="text-white-50 small">
                     {{ user.get_full_name|default:user.username }}

@@ -651,3 +651,10 @@ def reportes(request):
         })
 
     return render(request, "asistencia/reportes.html", {"datos": datos, "hoy": hoy})
+
+
+@login_required
+def acerca(request):
+    return render(request, "asistencia/acerca.html")
+
+    return render(request, "asistencia/reportes.html", {"datos": datos, "hoy": hoy})

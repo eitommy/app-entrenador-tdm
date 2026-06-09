@@ -1,0 +1,89 @@
+{% extends "asistencia/base.html" %}
+
+{% block content %}
+
+<div class="mb-4">
+    <h1 class="mb-2">Acerca de TDM Coach</h1>
+    <p class="text-secondary mb-0">
+        Una herramienta simple para organizar turnos, asistencias y ejercicios de entrenamiento.
+    </p>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <h4 class="mb-3">¿Para qué sirve?</h4>
+
+        <p>
+            TDM Coach está pensada para que los entrenadores puedan llevar un control claro
+            de cada jornada de entrenamiento.
+        </p>
+
+        <p class="mb-0">
+            Desde la app se puede tomar un turno, cargar qué jugadores asistieron,
+            marcar ausencias o llegadas tarde, registrar los ejercicios realizados
+            y revisar el seguimiento semanal de cada jugador.
+        </p>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="mb-3">Qué puede hacer el entrenador</h5>
+
+                <ul class="mb-0">
+                    <li>Iniciar sesión con su usuario.</li>
+                    <li>Tomar el turno que le corresponde.</li>
+                    <li>Agregar jugadores al turno.</li>
+                    <li>Marcar asistencia, ausencia o llegada tarde.</li>
+                    <li>Cargar los ejercicios realizados por cada jugador.</li>
+                    <li>Ver cuántos ejercicios tiene cargado cada jugador.</li>
+                    <li>Consultar el seguimiento semanal.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="mb-3">Cómo se usa en el día a día</h5>
+
+                <ol class="mb-0">
+                    <li>El entrenador entra con su cuenta.</li>
+                    <li>Selecciona la fecha y el turno.</li>
+                    <li>Toma el turno si todavía no tiene entrenador asignado.</li>
+                    <li>Carga los jugadores presentes en ese turno.</li>
+                    <li>Marca la asistencia de cada jugador.</li>
+                    <li>Entra a “Ejercicios” para registrar lo trabajado.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <h5 class="mb-3">Objetivo de la app</h5>
+
+        <p class="mb-0">
+            El objetivo es reemplazar planillas o anotaciones sueltas por un sistema más ordenado,
+            rápido y fácil de consultar. Así cada entrenador puede saber qué jugadores asistieron,
+            qué ejercicios hicieron y cómo viene su continuidad durante la semana.
+        </p>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <h5 class="mb-3">Información útil</h5>
+
+        <p class="mb-0">
+            Si un jugador no aparece disponible para agregarlo a un turno, puede que ya esté cargado
+            en ese mismo turno o que figure como inactivo en la lista de jugadores.
+        </p>
+    </div>
+</div>
+
+{% endblock %}

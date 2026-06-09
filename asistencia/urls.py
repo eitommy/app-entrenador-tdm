@@ -6,6 +6,7 @@ urlpatterns = [
     path("accounts/register/", views.registro, name="registro"),
 
     path("", views.inicio, name="inicio"),
+    path("acerca/", views.acerca, name="acerca"),
     path("ir-a-fecha-asistencia/", views.ir_a_fecha_asistencia, name="ir_a_fecha_asistencia"),
 
     path("dia/<str:fecha_str>/turno/<int:turno>/", views.dia_turno, name="dia_turno"),
