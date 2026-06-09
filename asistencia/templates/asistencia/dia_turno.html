@@ -114,30 +114,16 @@
 <div class="card mb-4">
     <div class="card-header fw-bold">Agregar jugador a este turno</div>
     <div class="card-body">
-        <form method="post" action="{% url 'agregar_jugador' entrenamiento.id %}" class="row g-2" id="agregar-jugador-form">
+        <form method="post" action="{% url 'agregar_jugador' entrenamiento.id %}" class="row g-2">
             {% csrf_token %}
 
             <div class="col-md-8">
-                <input
-                    type="text"
-                    id="jugador_busqueda"
-                    class="form-control"
-                    list="jugadores_disponibles_list"
-                    placeholder="Escribí nombre o apellido del jugador"
-                    autocomplete="off"
-                    required
-                >
-
-                <datalist id="jugadores_disponibles_list">
+                <select name="jugador_id" class="form-select" required>
+                    <option value="">Seleccioná un jugador</option>
                     {% for jugador in jugadores_disponibles %}
-                        <option
-                            value="{{ jugador }}"
-                            data-id="{{ jugador.id }}">
-                        </option>
+                        <option value="{{ jugador.id }}">{{ jugador }}</option>
                     {% endfor %}
-                </datalist>
-
-                <input type="hidden" name="jugador_id" id="jugador_id_real">
+                </select>
             </div>
 
             <div class="col-md-4">
@@ -146,7 +132,7 @@
         </form>
 
         <small class="text-muted d-block mt-2">
-            Empezá a escribir el nombre del jugador para buscarlo más rápido.
+            Elegí un jugador de la lista para agregarlo a este turno.
         </small>
     </div>
 </div>
@@ -214,32 +200,5 @@
         {% endif %}
     </div>
 </div>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const inputBusqueda = document.getElementById("jugador_busqueda");
-    const hiddenJugadorId = document.getElementById("jugador_id_real");
-    const formAgregar = document.getElementById("agregar-jugador-form");
-    const opciones = document.querySelectorAll("#jugadores_disponibles_list option");
-
-    inputBusqueda.addEventListener("input", function () {
-        const valor = inputBusqueda.value.trim();
-        hiddenJugadorId.value = "";
-
-        opciones.forEach(option => {
-            if (option.value === valor) {
-                hiddenJugadorId.value = option.dataset.id;
-            }
-        });
-    });
-
-    formAgregar.addEventListener("submit", function (e) {
-        if (!hiddenJugadorId.value) {
-            e.preventDefault();
-            alert("Seleccioná un jugador válido de la lista.");
-        }
-    });
-});
-</script>
 
 {% endblock %}
