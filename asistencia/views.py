@@ -213,46 +213,53 @@ def agregar_jugador(request, entrenamiento_id):
 @login_required
 @require_POST
 def copiar_lista_ayer(request, entrenamiento_id):
-    entrenamiento_actual = get_object_or_404(Entrenamiento, id=entrenamiento_id)
-    asignar_entrenador_si_vacio(entrenamiento_actual, request.user)
+    entrenamiento = get_object_or_404(Entrenamiento, id=entrenamiento_id)
 
-    fecha_ayer = entrenamiento_actual.fecha - timedelta(days=1)
-
-    try:
-        entrenamiento_ayer = Entrenamiento.objects.get(
-            fecha=fecha_ayer,
-            turno=entrenamiento_actual.turno,
+    entrenamiento_anterior = (
+        Entrenamiento.objects
+        .filter(
+            fecha__lt=entrenamiento.fecha,
+            turno=entrenamiento.turno,
+            asistencias__isnull=False
         )
-    except Entrenamiento.DoesNotExist:
-        messages.warning(request, "No hay lista del día anterior para copiar.")
-        return redirect(
-            "dia_turno",
-            fecha_str=entrenamiento_actual.fecha.isoformat(),
-            turno=entrenamiento_actual.turno,
-        )
-
-    asistencias_ayer = Asistencia.objects.filter(entrenamiento=entrenamiento_ayer)
-
-    copiados = 0
-    for asistencia in asistencias_ayer:
-        _, created = Asistencia.objects.get_or_create(
-            jugador=asistencia.jugador,
-            entrenamiento=entrenamiento_actual,
-            defaults={"estado": "pendiente"},
-        )
-        if created:
-            copiados += 1
-
-    if copiados:
-        messages.success(request, f"Se copiaron {copiados} jugadores del día anterior.")
-    else:
-        messages.info(request, "La lista ya estaba copiada.")
-
-    return redirect(
-        "dia_turno",
-        fecha_str=entrenamiento_actual.fecha.isoformat(),
-        turno=entrenamiento_actual.turno,
+        .annotate(total_jugadores=Count("asistencias"))
+        .filter(total_jugadores__gt=0)
+        .order_by("-fecha")
+        .first()
     )
+
+    if not entrenamiento_anterior:
+        messages.info(request, "No se encontró una lista anterior para copiar.")
+        return redirect("dia_turno", fecha_str=entrenamiento.fecha.strftime("%Y-%m-%d"), turno=entrenamiento.turno)
+
+    asistencias_anteriores = Asistencia.objects.filter(
+        entrenamiento=entrenamiento_anterior
+    ).select_related("jugador")
+
+    jugadores_copiados = 0
+
+    for asistencia_anterior in asistencias_anteriores:
+        _, creado = Asistencia.objects.get_or_create(
+            entrenamiento=entrenamiento,
+            jugador=asistencia_anterior.jugador,
+            defaults={"estado": "pendiente"}
+        )
+
+        if creado:
+            jugadores_copiados += 1
+
+    if jugadores_copiados > 0:
+        messages.success(
+            request,
+            f"Lista anterior copiada correctamente. Se agregaron {jugadores_copiados} jugador/es."
+        )
+    else:
+        messages.info(
+            request,
+            "La lista anterior ya estaba cargada en este turno."
+        )
+
+    return redirect("dia_turno", fecha_str=entrenamiento.fecha.strftime("%Y-%m-%d"), turno=entrenamiento.turno)
 
 
 @login_required

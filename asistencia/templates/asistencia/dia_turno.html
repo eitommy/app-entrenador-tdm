@@ -6,197 +6,272 @@
 
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
     <div>
-        <h2 class="mb-1">Asistencia del día</h2>
-        <p class="text-muted mb-0">{{ fecha|date:"j F Y" }} — Turno {{ turno }}</p>
-        <p class="mb-0">
+        <h1 class="mb-1">Asistencia</h1>
+        <p class="text-muted mb-1">
+            {{ fecha|date:"l j F Y" }} — Turno {{ turno }}
+        </p>
+        <p class="mb-0 text-secondary">
             <strong>Entrenador:</strong> {{ nombre_entrenador }}
         </p>
     </div>
 
     <div class="d-flex gap-2 flex-wrap">
-        <a class="btn btn-outline-secondary" href="{% url 'dia_turno' ayer|date:'Y-m-d' turno %}">← Ayer</a>
-        <a class="btn btn-dark" href="{% url 'dia_turno' hoy|date:'Y-m-d' turno %}">Hoy</a>
-        <a class="btn btn-outline-secondary" href="{% url 'dia_turno' maniana|date:'Y-m-d' turno %}">Mañana →</a>
+        <a href="{% url 'inicio' %}?fecha={{ fecha|date:'Y-m-d' }}" class="btn btn-outline-dark">
+            ← Volver al panel
+        </a>
+
+        <a class="btn btn-outline-primary"
+           href="{% url 'cargar_ejercicios' %}?fecha={{ fecha|date:'Y-m-d' }}&turno={{ turno }}">
+            Cargar ejercicios
+        </a>
     </div>
 </div>
 
-<div class="card mb-4 shadow-sm border-0 card-fecha-panel">
+<div class="card shadow-sm border-0 mb-4">
     <div class="card-body">
-        <div class="mb-3">
-            <h5 class="mb-1">Cambiar fecha</h5>
-            <p class="text-muted mb-0">Movete rápido entre días o elegí uno exacto.</p>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+            <div>
+                <h5 class="mb-1">Cambiar fecha</h5>
+                <p class="text-muted mb-0">Seleccioná otro día de entrenamiento.</p>
+            </div>
+
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{% url 'dia_turno' ayer|date:'Y-m-d' turno %}" class="btn btn-outline-secondary">
+                    ← Ayer
+                </a>
+
+                <a href="{% url 'dia_turno' hoy|date:'Y-m-d' turno %}" class="btn btn-dark">
+                    Hoy
+                </a>
+
+                <a href="{% url 'dia_turno' maniana|date:'Y-m-d' turno %}" class="btn btn-outline-secondary">
+                    Mañana →
+                </a>
+            </div>
         </div>
 
         <form method="get" action="{% url 'ir_a_fecha_asistencia' %}" class="row g-2 align-items-end">
+            <input type="hidden" name="turno" value="{{ turno }}">
+
             <div class="col-md-9">
                 <label class="form-label">Seleccionar fecha</label>
-                <input type="date" name="fecha" class="form-control form-control-fecha" value="{{ fecha|date:'Y-m-d' }}" required>
-                <input type="hidden" name="turno" value="{{ turno }}">
+                <input type="date" name="fecha" class="form-control" value="{{ fecha|date:'Y-m-d' }}" required>
             </div>
+
             <div class="col-md-3">
-                <button type="submit" class="btn btn-outline-primary w-100">Ir a esa fecha</button>
+                <button class="btn btn-outline-primary w-100" type="submit">
+                    Ir a esa fecha
+                </button>
             </div>
         </form>
     </div>
 </div>
 
-<div class="mb-4 d-flex gap-2 flex-wrap">
-    <a class="btn {% if turno == 1 %}btn-primary{% else %}btn-outline-primary{% endif %}"
-       href="{% url 'dia_turno' fecha|date:'Y-m-d' 1 %}">
-        Turno 1
-    </a>
-
-    <a class="btn {% if turno == 2 %}btn-warning{% else %}btn-outline-warning{% endif %}"
-       href="{% url 'dia_turno' fecha|date:'Y-m-d' 2 %}">
-        Turno 2
-    </a>
-
-    <a class="btn {% if turno == 3 %}btn-success{% else %}btn-outline-success{% endif %}"
-       href="{% url 'dia_turno' fecha|date:'Y-m-d' 3 %}">
-        Turno 3
-    </a>
-
-    <a class="btn btn-outline-dark" href="{% url 'cargar_ejercicios' %}?fecha={{ fecha|date:'Y-m-d' }}&turno={{ turno }}">
-        Cargar ejercicios
-    </a>
-</div>
-
-<div class="card mb-4">
-    <div class="card-header fw-bold">Información del turno</div>
+<div class="card shadow-sm border-0 mb-4">
     <div class="card-body">
+        <h5 class="mb-3">Turnos del día</h5>
 
-        <div class="mb-3">
-            <p class="mb-2">
-                <strong>Entrenador responsable:</strong> {{ nombre_entrenador }}
-            </p>
-
-            {% if not entrenamiento.entrenador %}
-                <form method="post" action="{% url 'tomar_turno' entrenamiento.id %}" class="mb-3">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary">
-                        Tomar este turno
-                    </button>
-                </form>
-            {% endif %}
-        </div>
-
-        <form method="post" action="{% url 'guardar_info_entrenamiento' entrenamiento.id %}">
-            {% csrf_token %}
-
-            <div class="mb-3">
-                <label class="form-label">Observaciones del turno</label>
-                {{ entrenamiento_form.observaciones }}
-            </div>
-
-            <button type="submit" class="btn btn-dark">
-                Guardar observaciones
-            </button>
-        </form>
-    </div>
-</div>
-
-<div class="mb-3 d-flex gap-2 flex-wrap">
-    <form method="post" action="{% url 'copiar_lista_ayer' entrenamiento.id %}">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-outline-dark">
-            Copiar lista de ayer
-        </button>
-    </form>
-
-    <form method="post" action="{% url 'marcar_todos_asistieron' entrenamiento.id %}">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-success">
-            Marcar todos asistieron
-        </button>
-    </form>
-</div>
-
-<div class="card mb-4">
-    <div class="card-header fw-bold">Agregar jugador a este turno</div>
-    <div class="card-body">
-        <form method="post" action="{% url 'agregar_jugador' entrenamiento.id %}" class="row g-2">
-            {% csrf_token %}
-
-            <div class="col-md-8">
-                <select name="jugador_id" class="form-select" required>
-                    <option value="">Seleccioná un jugador</option>
-                    {% for jugador in jugadores_disponibles %}
-                        <option value="{{ jugador.id }}">{{ jugador }}</option>
-                    {% endfor %}
-                </select>
+        <div class="row g-2">
+            <div class="col-md-4">
+                <a href="{% url 'dia_turno' fecha|date:'Y-m-d' 1 %}"
+                   class="btn w-100 py-2 {% if turno == 1 %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    Turno 1
+                </a>
             </div>
 
             <div class="col-md-4">
-                <button type="submit" class="btn btn-dark w-100">Agregar</button>
+                <a href="{% url 'dia_turno' fecha|date:'Y-m-d' 2 %}"
+                   class="btn w-100 py-2 {% if turno == 2 %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                    Turno 2
+                </a>
             </div>
-        </form>
 
-        <small class="text-muted d-block mt-2">
-            Elegí un jugador de la lista para agregarlo a este turno.
-        </small>
+            <div class="col-md-4">
+                <a href="{% url 'dia_turno' fecha|date:'Y-m-d' 3 %}"
+                   class="btn w-100 py-2 {% if turno == 3 %}btn-success{% else %}btn-outline-success{% endif %}">
+                    Turno 3
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header fw-bold">Jugadores del turno {{ turno }}</div>
-    <div class="card-body">
-        {% if asistencias %}
-            <div class="list-group">
-                {% for item in asistencias %}
-                    <div class="list-group-item attendance-row">
-                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-                            <div>
-                                <div class="fw-semibold">{{ item.jugador }}</div>
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="mb-3">Información del turno</h5>
 
-                                {% if item.ejercicios_cargados > 0 %}
-                                    <small class="text-success">
-                                        Ejercicios cargados: {{ item.ejercicios_cargados }}
-                                    </small>
-                                {% else %}
-                                    <small class="text-muted">
-                                        Sin ejercicios cargados
-                                    </small>
-                                {% endif %}
+                <p class="mb-2">
+                    <strong>Entrenador responsable:</strong> {{ nombre_entrenador }}
+                </p>
+
+                {% if not entrenamiento.entrenador %}
+                    <form method="post" action="{% url 'tomar_turno' entrenamiento.id %}" class="mb-3">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-dark">
+                            Tomar este turno
+                        </button>
+                    </form>
+                {% endif %}
+
+                <form method="post" action="{% url 'guardar_info_entrenamiento' entrenamiento.id %}">
+                    {% csrf_token %}
+
+                    <label class="form-label">Observaciones</label>
+                    {{ entrenamiento_form.observaciones }}
+
+                    <button type="submit" class="btn btn-outline-dark mt-3">
+                        Guardar observaciones
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="mb-3">Agregar jugador</h5>
+
+                {% if jugadores_disponibles %}
+                    <form method="post" action="{% url 'agregar_jugador' entrenamiento.id %}">
+                        {% csrf_token %}
+
+                        <label class="form-label">Jugador</label>
+                        <select name="jugador_id" class="form-select" required>
+                            <option value="">Seleccioná un jugador</option>
+                            {% for jugador in jugadores_disponibles %}
+                                <option value="{{ jugador.id }}">{{ jugador }}</option>
+                            {% endfor %}
+                        </select>
+
+                        <button type="submit" class="btn btn-primary mt-3 w-100">
+                            Agregar al turno
+                        </button>
+                    </form>
+                {% else %}
+                    <p class="text-muted mb-0">
+                        No hay jugadores disponibles para agregar.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h5 class="mb-1">Acciones rápidas</h5>
+                <p class="text-muted mb-0">Opciones para cargar el turno más rápido.</p>
+            </div>
+
+            <div class="d-flex gap-2 flex-wrap">
+                <form method="post" action="{% url 'copiar_lista_ayer' entrenamiento.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-dark">
+                        Copiar lista anterior
+                    </button>
+                </form>
+
+                <form method="post" action="{% url 'marcar_todos_asistieron' entrenamiento.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success">
+                        Marcar todos presentes
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+            <div>
+                <h4 class="mb-1">Jugadores del turno</h4>
+                <p class="text-muted mb-0">
+                    Marcá asistencia y cargá ejercicios por jugador.
+                </p>
+            </div>
+
+            <span class="badge bg-dark fs-6">
+                {{ asistencias|length }} jugador{{ asistencias|length|pluralize:"es" }}
+            </span>
+        </div>
+
+        {% if asistencias %}
+            <div class="d-flex flex-column gap-3">
+                {% for item in asistencias %}
+                    <div class="attendance-row card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                                <div>
+                                    <h5 class="mb-1">{{ item.jugador }}</h5>
+
+                                    {% if item.ejercicios_cargados > 0 %}
+                                        <small class="text-success">
+                                            Ejercicios cargados: {{ item.ejercicios_cargados }}
+                                        </small>
+                                    {% else %}
+                                        <small class="text-muted">
+                                            Sin ejercicios cargados
+                                        </small>
+                                    {% endif %}
+                                </div>
+
+                                <form method="post" action="{% url 'quitar_jugador' item.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        Quitar
+                                    </button>
+                                </form>
                             </div>
 
-                            <div class="d-flex flex-wrap gap-2">
-                                <button type="button"
-                                        class="btn btn-outline-success status-btn attendance-btn {% if item.estado == 'asistio' %}active-asistio{% endif %}"
-                                        data-attendance-id="{{ item.id }}"
-                                        data-status="asistio">
-                                    Asistió
-                                </button>
+                            <hr>
 
-                                <button type="button"
-                                        class="btn btn-outline-danger status-btn attendance-btn {% if item.estado == 'ausente' %}active-ausente{% endif %}"
-                                        data-attendance-id="{{ item.id }}"
-                                        data-status="ausente">
-                                    Ausente
-                                </button>
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <button type="button"
+                                            class="btn btn-outline-success attendance-btn {% if item.estado == 'asistio' %}active-asistio{% endif %}"
+                                            data-attendance-id="{{ item.id }}"
+                                            data-status="asistio">
+                                        Asistió
+                                    </button>
 
-                                <button type="button"
-                                        class="btn btn-outline-warning status-btn attendance-btn {% if item.estado == 'tarde' %}active-tarde{% endif %}"
-                                        data-attendance-id="{{ item.id }}"
-                                        data-status="tarde">
-                                    Tarde
-                                </button>
+                                    <button type="button"
+                                            class="btn btn-outline-danger attendance-btn {% if item.estado == 'ausente' %}active-ausente{% endif %}"
+                                            data-attendance-id="{{ item.id }}"
+                                            data-status="ausente">
+                                        Ausente
+                                    </button>
+
+                                    <button type="button"
+                                            class="btn btn-outline-warning attendance-btn {% if item.estado == 'tarde' %}active-tarde{% endif %}"
+                                            data-attendance-id="{{ item.id }}"
+                                            data-status="tarde">
+                                        Tarde
+                                    </button>
+                                </div>
 
                                 <a class="btn btn-outline-primary"
                                    href="{% url 'cargar_ejercicios' %}?jugador={{ item.jugador.id }}&fecha={{ fecha|date:'Y-m-d' }}&turno={{ turno }}">
                                     Ejercicios
                                 </a>
-
-                                <form method="post" action="{% url 'quitar_jugador' item.id %}">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-outline-dark">Quitar</button>
-                                </form>
                             </div>
                         </div>
                     </div>
                 {% endfor %}
             </div>
         {% else %}
-            <p class="mb-0 text-muted">Todavía no hay jugadores en este turno.</p>
+            <div class="text-center py-5">
+                <h5 class="mb-2">Todavía no hay jugadores cargados</h5>
+                <p class="text-muted mb-0">
+                    Agregá jugadores al turno para empezar a marcar asistencia.
+                </p>
+            </div>
         {% endif %}
     </div>
 </div>
