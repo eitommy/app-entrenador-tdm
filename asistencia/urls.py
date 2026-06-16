@@ -7,6 +7,7 @@ urlpatterns = [
 
     path("", views.inicio, name="inicio"),
     path("acerca/", views.acerca, name="acerca"),
+    path("perfil/", views.perfil, name="perfil"),
     path("ir-a-fecha-asistencia/", views.ir_a_fecha_asistencia, name="ir_a_fecha_asistencia"),
 
     path("dia/<str:fecha_str>/turno/<int:turno>/", views.dia_turno, name="dia_turno"),
@@ -32,4 +33,5 @@ urlpatterns = [
 
     path("seguimiento-semanal/", views.seguimiento_semanal, name="seguimiento_semanal"),
     path("reportes/", views.reportes, name="reportes"),
+    
 ]

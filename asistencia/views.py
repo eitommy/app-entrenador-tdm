@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import EjercicioForm, EntrenamientoInfoForm, JugadorForm, RegistroEntrenadorForm
+from .forms import EjercicioForm, EntrenamientoInfoForm, JugadorForm, PerfilForm, RegistroEntrenadorForm
 from .models import Asistencia, Ejercicio, EjercicioRealizado, Entrenamiento, Jugador
 
 
@@ -748,3 +748,19 @@ def reportes(request):
 @login_required
 def acerca(request):
     return render(request, "asistencia/acerca.html")
+
+@login_required
+def perfil(request):
+    if request.method == "POST":
+        form = PerfilForm(request.POST, instance=request.user)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Perfil actualizado correctamente.")
+            return redirect("perfil")
+    else:
+        form = PerfilForm(instance=request.user)
+
+    return render(request, "asistencia/perfil.html", {
+        "form": form,
+    })
