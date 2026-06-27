@@ -5,12 +5,16 @@
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
     <div>
         <h1 class="mb-1">Reportes</h1>
+
         <p class="text-secondary mb-0">
             Resumen de asistencia semanal y mensual por jugador.
         </p>
     </div>
 
-    <a href="{% url 'inicio' %}" class="btn btn-outline-dark">
+    <a
+        href="{% url 'inicio' %}"
+        class="btn btn-outline-dark"
+    >
         ← Volver al panel
     </a>
 </div>
@@ -19,9 +23,14 @@
     <div class="col-md-6">
         <div class="card shadow-sm border-0 h-100">
             <div class="card-body">
-                <div class="text-muted small">Semana actual</div>
+                <div class="text-muted small">
+                    Semana actual
+                </div>
+
                 <h5 class="mb-0">
-                    {{ inicio_semana|date:"d/m/Y" }} al {{ hoy|date:"d/m/Y" }}
+                    {{ inicio_semana|date:"d/m/Y" }}
+                    al
+                    {{ hoy|date:"d/m/Y" }}
                 </h5>
             </div>
         </div>
@@ -30,7 +39,10 @@
     <div class="col-md-6">
         <div class="card shadow-sm border-0 h-100">
             <div class="card-body">
-                <div class="text-muted small">Mes actual</div>
+                <div class="text-muted small">
+                    Mes actual
+                </div>
+
                 <h5 class="mb-0">
                     Desde {{ inicio_mes|date:"d/m/Y" }}
                 </h5>
@@ -43,14 +55,18 @@
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
             <div>
-                <h4 class="mb-1">Asistencia de jugadores</h4>
+                <h4 class="mb-1">
+                    Asistencia de jugadores
+                </h4>
+
                 <p class="text-muted mb-0">
                     Se toman como presentes los estados “Asistió” y “Tarde”.
                 </p>
             </div>
 
             <span class="badge bg-dark fs-6">
-                {{ datos|length }} jugador{{ datos|length|pluralize:"es" }}
+                {{ datos|length }}
+                jugador{{ datos|length|pluralize:"es" }}
             </span>
         </div>
 
@@ -62,7 +78,14 @@
                             <th>Jugador</th>
                             <th class="text-center">Semana</th>
                             <th class="text-center">Mes</th>
+                            <th class="text-center">
+                                Ausencias del mes
+                            </th>
+                            <th class="text-center">
+                                Motivo frecuente
+                            </th>
                             <th class="text-center">Estado</th>
+                            <th class="text-end">Acciones</th>
                         </tr>
                     </thead>
 
@@ -70,7 +93,9 @@
                         {% for item in datos %}
                             <tr>
                                 <td>
-                                    <strong>{{ item.jugador }}</strong>
+                                    <strong>
+                                        {{ item.jugador }}
+                                    </strong>
                                 </td>
 
                                 <td class="text-center">
@@ -79,13 +104,16 @@
                                     </div>
 
                                     <small class="text-muted">
-                                        {{ item.semana_presentes }}/{{ item.semana_total }} presentes
+                                        {{ item.semana_presentes }}/{{ item.semana_total }}
+                                        presentes
                                     </small>
 
                                     {% if item.semana_ausentes > 0 %}
                                         <br>
+
                                         <small class="text-danger">
-                                            {{ item.semana_ausentes }} ausente{{ item.semana_ausentes|pluralize:"s" }}
+                                            {{ item.semana_ausentes }}
+                                            ausente{{ item.semana_ausentes|pluralize:"s" }}
                                         </small>
                                     {% endif %}
                                 </td>
@@ -96,14 +124,51 @@
                                     </div>
 
                                     <small class="text-muted">
-                                        {{ item.mes_presentes }}/{{ item.mes_total }} presentes
+                                        {{ item.mes_presentes }}/{{ item.mes_total }}
+                                        presentes
                                     </small>
 
                                     {% if item.mes_ausentes > 0 %}
                                         <br>
+
                                         <small class="text-danger">
-                                            {{ item.mes_ausentes }} ausente{{ item.mes_ausentes|pluralize:"s" }}
+                                            {{ item.mes_ausentes }}
+                                            ausente{{ item.mes_ausentes|pluralize:"s" }}
                                         </small>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-center">
+                                    {% if item.mes_ausentes > 0 %}
+                                        <div class="mb-1">
+                                            <span class="badge bg-success">
+                                                {{ item.mes_ausencias_justificadas }}
+                                                justificada{{ item.mes_ausencias_justificadas|pluralize:"s" }}
+                                            </span>
+                                        </div>
+
+                                        <div>
+                                            <span class="badge bg-danger">
+                                                {{ item.mes_ausencias_sin_aviso }}
+                                                sin aviso
+                                            </span>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">
+                                            Sin ausencias
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-center">
+                                    {% if item.motivo_mas_frecuente != "-" %}
+                                        <span class="badge bg-light text-dark border">
+                                            {{ item.motivo_mas_frecuente }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">
+                                            -
+                                        </span>
                                     {% endif %}
                                 </td>
 
@@ -112,6 +177,15 @@
                                         {{ item.estado_texto }}
                                     </span>
                                 </td>
+
+                                <td class="text-end">
+                                    <a
+                                        href="{% url 'historial_jugador' item.jugador.id %}"
+                                        class="btn btn-sm btn-outline-primary"
+                                    >
+                                        Ver historial
+                                    </a>
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -119,7 +193,10 @@
             </div>
         {% else %}
             <div class="text-center py-5">
-                <h5 class="mb-2">No hay datos para mostrar</h5>
+                <h5 class="mb-2">
+                    No hay datos para mostrar
+                </h5>
+
                 <p class="text-muted mb-0">
                     Cuando cargues asistencias, van a aparecer los reportes acá.
                 </p>
@@ -130,14 +207,25 @@
 
 <div class="card shadow-sm border-0 mt-4">
     <div class="card-body">
-        <h5 class="mb-3">Referencia</h5>
+        <h5 class="mb-3">
+            Referencia
+        </h5>
 
         <div class="d-flex gap-2 flex-wrap">
-            <span class="badge bg-success">80% o más: buena asistencia</span>
-            <span class="badge bg-warning text-dark">50% a 79%: asistencia media</span>
-            <span class="badge bg-danger">Menos de 50%: baja asistencia</span>
+            <span class="badge bg-success">
+                80% o más: buena asistencia
+            </span>
+
+            <span class="badge bg-warning text-dark">
+                50% a 79%: asistencia media
+            </span>
+
+            <span class="badge bg-danger">
+                Menos de 50%: baja asistencia
+            </span>
         </div>
     </div>
 </div>
 
 {% endblock %}
+

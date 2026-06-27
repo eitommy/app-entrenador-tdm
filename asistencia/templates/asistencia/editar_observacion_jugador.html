@@ -1,0 +1,68 @@
+{% extends "asistencia/base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <h1 class="mb-1">Editar observación</h1>
+
+        <p class="text-muted mb-0">
+            {{ observacion.jugador }}
+            · {{ entrenamiento.fecha|date:"d/m/Y" }}
+            · Turno {{ entrenamiento.turno }}
+        </p>
+    </div>
+
+    <a
+        href="{% url 'dia_turno' entrenamiento.fecha|date:'Y-m-d' entrenamiento.turno %}"
+        class="btn btn-outline-dark"
+    >
+        ← Volver al turno
+    </a>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="mb-3">
+                <label class="form-label">
+                    Observación individual
+                </label>
+
+                {{ form.texto }}
+
+                {% for error in form.texto.errors %}
+                    <div class="text-danger small mt-1">
+                        {{ error }}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="d-flex gap-2 flex-wrap">
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                >
+                    Guardar cambios
+                </button>
+
+                <a
+                    href="{% url 'dia_turno' entrenamiento.fecha|date:'Y-m-d' entrenamiento.turno %}"
+                    class="btn btn-outline-secondary"
+                >
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

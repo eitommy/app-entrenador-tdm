@@ -1,9 +1,10 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from django.db.models import Q
+from django.forms import inlineformset_factory
 
-from .models import Jugador, Ejercicio, Entrenamiento
-
+from .models import Jugador, Ejercicio, Entrenamiento, TrabajoTurno, Asistencia, ObservacionJugador,PartidoTurno,SetPartido
 
 class RegistroEntrenadorForm(UserCreationForm):
     first_name = forms.CharField(
@@ -142,3 +143,474 @@ class EntrenamientoInfoForm(forms.ModelForm):
                 "placeholder": "Observaciones del turno...",
             }),
         }
+        
+
+class TrabajoTurnoForm(forms.ModelForm):
+    class Meta:
+        model = TrabajoTurno
+        fields = [
+            "cambio",
+            "tipo",
+            "jugador_1",
+            "jugador_2",
+            "detalle",
+        ]
+
+        labels = {
+            "cambio": "Cambio",
+            "tipo": "Tipo de trabajo",
+            "jugador_1": "Jugador",
+            "jugador_2": "Compañero",
+            "detalle": "Detalle opcional",
+        }
+
+        widgets = {
+            "cambio": forms.NumberInput(attrs={
+                "class": "form-control",
+                "min": 1,
+                "placeholder": "Ejemplo: 1",
+            }),
+            "tipo": forms.Select(attrs={
+                "class": "form-select",
+                "id": "id_tipo_trabajo",
+            }),
+            "jugador_1": forms.Select(attrs={
+                "class": "form-select",
+            }),
+            "jugador_2": forms.Select(attrs={
+                "class": "form-select",
+                "id": "id_jugador_2",
+            }),
+            "detalle": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Ejemplo: saque y tercera pelota",
+                "autocomplete": "off",
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.entrenamiento = kwargs.pop("entrenamiento", None)
+
+        super().__init__(*args, **kwargs)
+
+        self.fields["jugador_2"].required = False
+        self.fields["detalle"].required = False
+
+        if not self.entrenamiento:
+            return
+
+        asistencias_turno = (
+            Asistencia.objects
+            .filter(entrenamiento=self.entrenamiento)
+            .select_related("jugador")
+        )
+
+        jugadores_ids = asistencias_turno.values_list(
+            "jugador_id",
+            flat=True,
+        )
+
+        jugadores_del_turno = (
+            Jugador.objects
+            .filter(
+                id__in=jugadores_ids,
+                activo=True,
+            )
+            .order_by(
+                "apellido",
+                "nombre",
+            )
+        )
+
+        self.fields["jugador_1"].queryset = jugadores_del_turno
+        self.fields["jugador_2"].queryset = jugadores_del_turno
+
+        if self.is_bound:
+            return
+
+        trabajos = TrabajoTurno.objects.filter(
+            entrenamiento=self.entrenamiento
+        )
+
+        ultimo_cambio = (
+            trabajos
+            .order_by("-cambio")
+            .values_list("cambio", flat=True)
+            .first()
+        )
+
+        if ultimo_cambio is None:
+            cambio_sugerido = 1
+        else:
+            trabajos_ultimo_cambio = trabajos.filter(
+                cambio=ultimo_cambio
+            )
+
+            jugadores_asignados_ids = set()
+
+            for trabajo in trabajos_ultimo_cambio:
+                jugadores_asignados_ids.add(
+                    trabajo.jugador_1_id
+                )
+
+                if trabajo.jugador_2_id:
+                    jugadores_asignados_ids.add(
+                        trabajo.jugador_2_id
+                    )
+
+            total_jugadores = asistencias_turno.count()
+            total_asignados = len(jugadores_asignados_ids)
+
+            ultimo_cambio_completo = (
+                total_jugadores > 0
+                and total_asignados == total_jugadores
+            )
+
+            if ultimo_cambio_completo:
+                cambio_sugerido = ultimo_cambio + 1
+            else:
+                cambio_sugerido = ultimo_cambio
+
+        self.fields["cambio"].initial = cambio_sugerido
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        cambio = cleaned_data.get("cambio")
+        tipo = cleaned_data.get("tipo")
+        jugador_1 = cleaned_data.get("jugador_1")
+        jugador_2 = cleaned_data.get("jugador_2")
+
+        if not self.entrenamiento:
+            return cleaned_data
+
+        if not cambio or not jugador_1:
+            return cleaned_data
+
+        if tipo == TrabajoTurno.Tipo.PAREJA:
+            if not jugador_2:
+                self.add_error(
+                    "jugador_2",
+                    "Para una pareja tenés que seleccionar un compañero.",
+                )
+                return cleaned_data
+
+            if jugador_1 == jugador_2:
+                self.add_error(
+                    "jugador_2",
+                    "Un jugador no puede formar pareja consigo mismo.",
+                )
+                return cleaned_data
+        else:
+            jugador_2 = None
+            cleaned_data["jugador_2"] = None
+
+        trabajos_mismo_cambio = TrabajoTurno.objects.filter(
+            entrenamiento=self.entrenamiento,
+            cambio=cambio,
+        )
+
+        if self.instance and self.instance.pk:
+            trabajos_mismo_cambio = trabajos_mismo_cambio.exclude(
+                pk=self.instance.pk
+            )
+
+        jugador_1_ocupado = trabajos_mismo_cambio.filter(
+            Q(jugador_1=jugador_1)
+            | Q(jugador_2=jugador_1)
+        ).exists()
+
+        if jugador_1_ocupado:
+            self.add_error(
+                "jugador_1",
+                f"{jugador_1} ya tiene una actividad cargada en el cambio {cambio}.",
+            )
+
+        if jugador_2:
+            jugador_2_ocupado = trabajos_mismo_cambio.filter(
+                Q(jugador_1=jugador_2)
+                | Q(jugador_2=jugador_2)
+            ).exists()
+
+            if jugador_2_ocupado:
+                self.add_error(
+                    "jugador_2",
+                    f"{jugador_2} ya tiene una actividad cargada en el cambio {cambio}.",
+                )
+
+        if (
+            tipo == TrabajoTurno.Tipo.PAREJA
+            and jugador_1
+            and jugador_2
+        ):
+            parejas_existentes = TrabajoTurno.objects.filter(
+                entrenamiento=self.entrenamiento,
+                tipo=TrabajoTurno.Tipo.PAREJA,
+            )
+
+            if self.instance and self.instance.pk:
+                parejas_existentes = parejas_existentes.exclude(
+                    pk=self.instance.pk
+                )
+
+            pareja_duplicada = parejas_existentes.filter(
+                (
+                    Q(jugador_1=jugador_1)
+                    & Q(jugador_2=jugador_2)
+                )
+                |
+                (
+                    Q(jugador_1=jugador_2)
+                    & Q(jugador_2=jugador_1)
+                )
+            ).first()
+
+            if pareja_duplicada:
+                self.add_error(
+                    "jugador_2",
+                    (
+                        f"La pareja {jugador_1} - {jugador_2} "
+                        f"ya fue asignada en el cambio "
+                        f"{pareja_duplicada.cambio}."
+                    ),
+                )
+
+        return cleaned_data
+
+
+class ObservacionJugadorForm(forms.ModelForm):
+    class Meta:
+        model = ObservacionJugador
+        fields = [
+            "texto",
+        ]
+
+        labels = {
+            "texto": "Observación individual",
+        }
+
+        widgets = {
+            "texto": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                    "placeholder": (
+                        "Ejemplo: mejorar recepción, trabajar desplazamiento "
+                        "lateral o entrenó con molestias."
+                    ),
+                    "autocomplete": "off",
+                }
+            ),
+        }
+
+    def clean_texto(self):
+        texto = self.cleaned_data.get("texto", "").strip()
+
+        if not texto:
+            raise forms.ValidationError(
+                "Escribí una observación antes de guardarla."
+            )
+
+        if len(texto) < 3:
+            raise forms.ValidationError(
+                "La observación es demasiado corta."
+            )
+
+        return texto
+    
+
+
+class MotivoAusenciaForm(forms.ModelForm):
+    class Meta:
+        model = Asistencia
+        fields = [
+            "motivo_ausencia",
+            "detalle_ausencia",
+        ]
+
+        labels = {
+            "motivo_ausencia": "Motivo de ausencia",
+            "detalle_ausencia": "Detalle opcional",
+        }
+
+        widgets = {
+            "motivo_ausencia": forms.Select(
+                attrs={
+                    "class": "form-select",
+                }
+            ),
+            "detalle_ausencia": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": (
+                        "Ejemplo: reposo médico, viaje por torneo "
+                        "o examen universitario."
+                    ),
+                    "autocomplete": "off",
+                }
+            ),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        motivo = cleaned_data.get("motivo_ausencia")
+        detalle = cleaned_data.get("detalle_ausencia", "").strip()
+
+        if not motivo:
+            self.add_error(
+                "motivo_ausencia",
+                "Seleccioná el motivo de la ausencia.",
+            )
+
+        if motivo == Asistencia.MotivoAusencia.OTRO and not detalle:
+            self.add_error(
+                "detalle_ausencia",
+                "Explicá el motivo cuando seleccionás Otro.",
+            )
+
+        cleaned_data["detalle_ausencia"] = detalle
+
+        return cleaned_data
+
+class PartidoTurnoForm(forms.ModelForm):
+    class Meta:
+        model = PartidoTurno
+        fields = [
+            "jugador_1",
+            "jugador_2",
+            "detalle",
+        ]
+
+        labels = {
+            "jugador_1": "Jugador 1",
+            "jugador_2": "Jugador 2",
+            "detalle": "Detalle opcional",
+        }
+
+        widgets = {
+            "jugador_1": forms.Select(
+                attrs={
+                    "class": "form-select",
+                }
+            ),
+            "jugador_2": forms.Select(
+                attrs={
+                    "class": "form-select",
+                }
+            ),
+            "detalle": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Ejemplo: partido final del turno",
+                }
+            ),
+        }
+
+    def __init__(self, *args, entrenamiento=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.entrenamiento = entrenamiento
+
+        jugadores_ids = []
+
+        if entrenamiento:
+            jugadores_ids = entrenamiento.asistencias.values_list(
+                "jugador_id",
+                flat=True,
+            )
+
+        jugadores = (
+            Jugador.objects
+            .filter(
+                id__in=jugadores_ids,
+                activo=True,
+            )
+            .order_by(
+                "apellido",
+                "nombre",
+            )
+        )
+
+        self.fields["jugador_1"].queryset = jugadores
+        self.fields["jugador_2"].queryset = jugadores
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        jugador_1 = cleaned_data.get("jugador_1")
+        jugador_2 = cleaned_data.get("jugador_2")
+
+        if jugador_1 and jugador_2 and jugador_1 == jugador_2:
+            raise forms.ValidationError(
+                "Un jugador no puede jugar contra sí mismo."
+            )
+
+        return cleaned_data
+
+class SetPartidoForm(forms.ModelForm):
+    class Meta:
+        model = SetPartido
+        fields = [
+            "puntos_jugador_1",
+            "puntos_jugador_2",
+        ]
+
+        labels = {
+            "puntos_jugador_1": "Puntos J1",
+            "puntos_jugador_2": "Puntos J2",
+        }
+
+        widgets = {
+            "puntos_jugador_1": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "min": 0,
+                }
+            ),
+            "puntos_jugador_2": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "min": 0,
+                }
+            ),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        puntos_1 = cleaned_data.get("puntos_jugador_1")
+        puntos_2 = cleaned_data.get("puntos_jugador_2")
+
+        if puntos_1 is None or puntos_2 is None:
+            return cleaned_data
+
+        if puntos_1 == puntos_2:
+            raise forms.ValidationError(
+                "Un set no puede terminar empatado."
+            )
+
+        ganador = max(puntos_1, puntos_2)
+        perdedor = min(puntos_1, puntos_2)
+
+        if ganador < 11:
+            raise forms.ValidationError(
+                "El ganador del set debe llegar al menos a 11 puntos."
+            )
+
+        if ganador - perdedor < 2:
+            raise forms.ValidationError(
+                "El set debe terminar con una diferencia mínima de 2 puntos."
+            )
+
+        return cleaned_data
+
+SetPartidoFormSet = inlineformset_factory(
+    PartidoTurno,
+    SetPartido,
+    form=SetPartidoForm,
+    extra=5,
+    can_delete=True,
+    min_num=1,
+    validate_min=True,
+)

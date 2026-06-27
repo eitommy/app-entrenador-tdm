@@ -1,0 +1,497 @@
+{% extends "asistencia/base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <h1 class="mb-1">
+            Historial de {{ jugador }}
+        </h1>
+
+        <p class="text-muted mb-0">
+            Seguimiento completo de asistencia, partidos, trabajos, ejercicios y observaciones.
+        </p>
+    </div>
+
+    <a
+        href="{% url 'lista_jugadores' %}"
+        class="btn btn-outline-dark"
+    >
+        ← Volver a jugadores
+    </a>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <h5 class="mb-3">
+            Filtrar por fechas
+        </h5>
+
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">
+                    Desde
+                </label>
+
+                <input
+                    type="date"
+                    name="desde"
+                    class="form-control"
+                    value="{{ fecha_desde|date:'Y-m-d' }}"
+                >
+            </div>
+
+            <div class="col-md-5">
+                <label class="form-label">
+                    Hasta
+                </label>
+
+                <input
+                    type="date"
+                    name="hasta"
+                    class="form-control"
+                    value="{{ fecha_hasta|date:'Y-m-d' }}"
+                >
+            </div>
+
+            <div class="col-md-2">
+                <button
+                    type="submit"
+                    class="btn btn-primary w-100"
+                >
+                    Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Turnos programados
+                </div>
+
+                <div class="fs-3 fw-bold">
+                    {{ total_asistencias }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Presentes
+                </div>
+
+                <div class="fs-3 fw-bold text-success">
+                    {{ total_presentes }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Ausencias
+                </div>
+
+                <div class="fs-3 fw-bold text-danger">
+                    {{ total_ausencias }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Asistencia
+                </div>
+
+                <div class="fs-3 fw-bold">
+                    {{ porcentaje_asistencia }}%
+                </div>
+
+                <div class="small text-muted">
+                    Tardanzas: {{ total_tardes }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Partidos jugados
+                </div>
+
+                <div class="fs-3 fw-bold">
+                    {{ total_partidos }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Ganados
+                </div>
+
+                <div class="fs-3 fw-bold text-success">
+                    {{ total_partidos_ganados }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Perdidos
+                </div>
+
+                <div class="fs-3 fw-bold text-danger">
+                    {{ total_partidos_perdidos }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <h4 class="mb-3">
+            Asistencias
+        </h4>
+
+        {% if asistencias %}
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Turno</th>
+                            <th>Estado</th>
+                            <th>Motivo</th>
+                            <th>Entrenador</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for asistencia in asistencias %}
+                            <tr>
+                                <td>
+                                    {{ asistencia.entrenamiento.fecha|date:"d/m/Y" }}
+                                </td>
+
+                                <td>
+                                    Turno {{ asistencia.entrenamiento.turno }}
+                                </td>
+
+                                <td>
+                                    {% if asistencia.estado == "asistio" %}
+                                        <span class="badge bg-success">
+                                            Asistió
+                                        </span>
+                                    {% elif asistencia.estado == "tarde" %}
+                                        <span class="badge bg-warning text-dark">
+                                            Tarde
+                                        </span>
+                                    {% elif asistencia.estado == "ausente" %}
+                                        <span class="badge bg-danger">
+                                            Ausente
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">
+                                            Sin marcar
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if asistencia.estado == "ausente" and asistencia.motivo_ausencia %}
+                                        <strong>
+                                            {{ asistencia.get_motivo_ausencia_display }}
+                                        </strong>
+
+                                        {% if asistencia.detalle_ausencia %}
+                                            <div class="small text-muted">
+                                                {{ asistencia.detalle_ausencia }}
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if asistencia.entrenamiento.entrenador %}
+                                        {{ asistencia.entrenamiento.entrenador.get_full_name|default:asistencia.entrenamiento.entrenador.username }}
+                                    {% else %}
+                                        Sin entrenador
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted mb-0">
+                No hay asistencias en el período seleccionado.
+            </p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+            <h4 class="mb-0">
+                Partidos
+            </h4>
+
+            <span class="badge bg-dark fs-6">
+                {{ total_partidos }}
+                partido{{ total_partidos|pluralize:"s" }}
+            </span>
+        </div>
+
+        {% if partidos %}
+            <div class="d-flex flex-column gap-3">
+                {% for partido in partidos %}
+                    <div class="border rounded-3 p-3">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-lg-3">
+                                <div class="fw-semibold">
+                                    {{ partido.entrenamiento.fecha|date:"d/m/Y" }}
+                                </div>
+
+                                <div class="small text-muted">
+                                    Turno {{ partido.entrenamiento.turno }}
+                                </div>
+                            </div>
+
+                            <div class="col-lg-3">
+                                <div class="small text-muted">
+                                    Rival
+                                </div>
+
+                                <div class="fw-semibold">
+                                    {% if partido.jugador_1_id == jugador.id %}
+                                        {{ partido.jugador_2 }}
+                                    {% else %}
+                                        {{ partido.jugador_1 }}
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="col-lg-2 text-lg-center">
+                                <div class="small text-muted">
+                                    Resultado
+                                </div>
+
+                                <div class="fs-4 fw-bold">
+                                    {% if partido.jugador_1_id == jugador.id %}
+                                        {{ partido.sets_jugador_1 }}-{{ partido.sets_jugador_2 }}
+                                    {% else %}
+                                        {{ partido.sets_jugador_2 }}-{{ partido.sets_jugador_1 }}
+                                    {% endif %}
+                                </div>
+
+                                {% if partido.ganador == jugador %}
+                                    <span class="badge bg-success">
+                                        Victoria
+                                    </span>
+                                {% elif partido.ganador %}
+                                    <span class="badge bg-danger">
+                                        Derrota
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        Sin definir
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-lg-4">
+                                <div class="small text-muted mb-2">
+                                    Sets
+                                </div>
+
+                                <div class="d-flex gap-2 flex-wrap">
+                                    {% for set_partido in partido.sets.all %}
+                                        <span class="badge bg-light text-dark border">
+                                            {% if partido.jugador_1_id == jugador.id %}
+                                                {{ set_partido.puntos_jugador_1 }}-{{ set_partido.puntos_jugador_2 }}
+                                            {% else %}
+                                                {{ set_partido.puntos_jugador_2 }}-{{ set_partido.puntos_jugador_1 }}
+                                            {% endif %}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+
+                                {% if partido.detalle %}
+                                    <div class="small text-muted mt-2">
+                                        {{ partido.detalle }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted mb-0">
+                No hay partidos registrados en el período seleccionado.
+            </p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <h4 class="mb-3">
+            Trabajos y parejas
+        </h4>
+
+        {% if trabajos %}
+            <div class="d-flex flex-column gap-3">
+                {% for trabajo in trabajos %}
+                    <div class="border rounded-3 p-3">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                            <div>
+                                <div class="fw-semibold">
+                                    {{ trabajo.entrenamiento.fecha|date:"d/m/Y" }}
+                                    · Turno {{ trabajo.entrenamiento.turno }}
+                                    · Cambio {{ trabajo.cambio }}
+                                </div>
+
+                                <div class="mt-1">
+                                    {% if trabajo.tipo == "pareja" %}
+                                        {% if trabajo.jugador_1_id == jugador.id %}
+                                            Con {{ trabajo.jugador_2 }}
+                                        {% else %}
+                                            Con {{ trabajo.jugador_1 }}
+                                        {% endif %}
+                                    {% else %}
+                                        {{ trabajo.get_tipo_display }}
+                                    {% endif %}
+                                </div>
+
+                                {% if trabajo.detalle %}
+                                    <div class="small text-muted mt-2">
+                                        {{ trabajo.detalle }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <span class="badge bg-primary">
+                                {{ trabajo.get_tipo_display }}
+                            </span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted mb-0">
+                No hay trabajos registrados en el período seleccionado.
+            </p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <h4 class="mb-3">
+            Ejercicios
+        </h4>
+
+        {% if ejercicios %}
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Categoría</th>
+                            <th>Ejercicio</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for item in ejercicios %}
+                            <tr>
+                                <td>
+                                    {{ item.fecha|date:"d/m/Y" }}
+                                </td>
+
+                                <td>
+                                    {{ item.ejercicio.get_categoria_display }}
+                                </td>
+
+                                <td>
+                                    {{ item.ejercicio.nombre }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted mb-0">
+                No hay ejercicios registrados en el período seleccionado.
+            </p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <h4 class="mb-3">
+            Observaciones
+        </h4>
+
+        {% if observaciones %}
+            <div class="d-flex flex-column gap-3">
+                {% for observacion in observaciones %}
+                    <div class="border rounded-3 p-3 bg-light">
+                        <p class="mb-2">
+                            {{ observacion.texto }}
+                        </p>
+
+                        <div class="small text-muted">
+                            {{ observacion.entrenamiento.fecha|date:"d/m/Y" }}
+                            · Turno {{ observacion.entrenamiento.turno }}
+                            · {{ observacion.creada_el|date:"H:i" }}
+
+                            {% if observacion.creada_por %}
+                                ·
+                                {{ observacion.creada_por.get_full_name|default:observacion.creada_por.username }}
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted mb-0">
+                No hay observaciones en el período seleccionado.
+            </p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

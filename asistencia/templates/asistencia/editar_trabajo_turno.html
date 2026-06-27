@@ -1,0 +1,167 @@
+{% extends "asistencia/base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <h1 class="mb-1">Editar trabajo</h1>
+
+        <p class="text-muted mb-0">
+            {{ entrenamiento.fecha|date:"l j F Y" }}
+            — Turno {{ entrenamiento.turno }}
+        </p>
+    </div>
+
+    <a
+        href="{% url 'dia_turno' entrenamiento.fecha|date:'Y-m-d' entrenamiento.turno %}"
+        class="btn btn-outline-dark"
+    >
+        ← Volver al turno
+    </a>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <div class="mb-4">
+            <h5 class="mb-1">
+                Trabajo actual
+            </h5>
+
+            <p class="text-muted mb-0">
+                Cambio {{ trabajo.cambio }}
+                · {{ trabajo.get_tipo_display }}
+            </p>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">
+                        Cambio
+                    </label>
+
+                    {{ form.cambio }}
+
+                    {% for error in form.cambio.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">
+                        Tipo de trabajo
+                    </label>
+
+                    {{ form.tipo }}
+
+                    {% for error in form.tipo.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">
+                        Jugador
+                    </label>
+
+                    {{ form.jugador_1 }}
+
+                    {% for error in form.jugador_1.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-4" id="contenedor-jugador-2">
+                    <label class="form-label">
+                        Compañero
+                    </label>
+
+                    {{ form.jugador_2 }}
+
+                    {% for error in form.jugador_2.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">
+                        Detalle opcional
+                    </label>
+
+                    {{ form.detalle }}
+
+                    {% for error in form.detalle.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 flex-wrap mt-4">
+                <button type="submit" class="btn btn-primary">
+                    Guardar cambios
+                </button>
+
+                <a
+                    href="{% url 'dia_turno' entrenamiento.fecha|date:'Y-m-d' entrenamiento.turno %}"
+                    class="btn btn-outline-secondary"
+                >
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const tipoTrabajo = document.getElementById("id_tipo_trabajo");
+    const jugador2 = document.getElementById("id_jugador_2");
+    const contenedorJugador2 = document.getElementById(
+        "contenedor-jugador-2"
+    );
+
+    function actualizarJugador2() {
+        if (!tipoTrabajo || !jugador2 || !contenedorJugador2) {
+            return;
+        }
+
+        const esPareja = tipoTrabajo.value === "pareja";
+
+        if (esPareja) {
+            contenedorJugador2.style.display = "block";
+            jugador2.required = true;
+        } else {
+            contenedorJugador2.style.display = "none";
+            jugador2.required = false;
+            jugador2.value = "";
+        }
+    }
+
+    tipoTrabajo.addEventListener(
+        "change",
+        actualizarJugador2
+    );
+
+    actualizarJugador2();
+});
+</script>
+
+{% endblock %}

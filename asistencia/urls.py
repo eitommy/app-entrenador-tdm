@@ -15,6 +15,18 @@ urlpatterns = [
     path("entrenamiento/<int:entrenamiento_id>/guardar-info/", views.guardar_info_entrenamiento, name="guardar_info_entrenamiento"),
     path("entrenamiento/<int:entrenamiento_id>/tomar-turno/", views.tomar_turno, name="tomar_turno"),
     path("entrenamiento/<int:entrenamiento_id>/agregar-jugador/", views.agregar_jugador, name="agregar_jugador"),
+    path(
+    "entrenamiento/<int:entrenamiento_id>/agregar-trabajo/",
+    views.agregar_trabajo_turno,
+    name="agregar_trabajo_turno",
+),
+
+path(
+    "trabajo-turno/<int:trabajo_id>/eliminar/",
+    views.eliminar_trabajo_turno,
+    name="eliminar_trabajo_turno",
+),
+
     path("entrenamiento/<int:entrenamiento_id>/copiar-ayer/", views.copiar_lista_ayer, name="copiar_lista_ayer"),
     path("entrenamiento/<int:entrenamiento_id>/todos-asistieron/", views.marcar_todos_asistieron, name="marcar_todos_asistieron"),
 
@@ -34,4 +46,82 @@ urlpatterns = [
     path("seguimiento-semanal/", views.seguimiento_semanal, name="seguimiento_semanal"),
     path("reportes/", views.reportes, name="reportes"),
     
+    path(
+    "entrenamiento/<int:entrenamiento_id>/agregar-trabajo/",
+    views.agregar_trabajo_turno,
+    name="agregar_trabajo_turno",
+),
+path(
+    "trabajo-turno/<int:trabajo_id>/editar/",
+    views.editar_trabajo_turno,
+    name="editar_trabajo_turno",
+),
+
+path(
+    "trabajo-turno/<int:trabajo_id>/eliminar/",
+    views.eliminar_trabajo_turno,
+    name="eliminar_trabajo_turno",
+),
+
+
+path(
+    "asistencia/<int:asistencia_id>/observacion/",
+    views.guardar_observacion_jugador,
+    name="guardar_observacion_jugador",
+),
+
+path(
+    "observacion/<int:observacion_id>/eliminar/",
+    views.eliminar_observacion_jugador,
+    name="eliminar_observacion_jugador",
+),
+    
+path(
+    "observacion/<int:observacion_id>/editar/",
+    views.editar_observacion_jugador,
+    name="editar_observacion_jugador",
+),
+
+
+path(
+    "jugadores/<int:jugador_id>/historial/",
+    views.historial_jugador,
+    name="historial_jugador",
+),
+
+path(
+    "asistencia/<int:asistencia_id>/motivo-ausencia/",
+    views.guardar_motivo_ausencia,
+    name="guardar_motivo_ausencia",
+),
+
+path(
+    "entrenamiento/<int:entrenamiento_id>/partido/nuevo/",
+    views.crear_partido_turno,
+    name="crear_partido_turno",
+),
+
+path(
+    "partido/<int:partido_id>/editar/",
+    views.editar_partido_turno,
+    name="editar_partido_turno",
+),
+
+path(
+    "partido/<int:partido_id>/eliminar/",
+    views.eliminar_partido_turno,
+    name="eliminar_partido_turno",
+),
+
+path(
+    "entrenamiento/<int:entrenamiento_id>/finalizar/",
+    views.finalizar_turno,
+    name="finalizar_turno",
+),
+
+path(
+    "entrenamiento/<int:entrenamiento_id>/reabrir/",
+    views.reabrir_turno,
+    name="reabrir_turno",
+),
 ]

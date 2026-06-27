@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import models
+from django.core.exceptions import ValidationError
 
 
 class Jugador(models.Model):
@@ -22,7 +23,11 @@ class Entrenamiento(models.Model):
     ]
 
     fecha = models.DateField()
-    turno = models.PositiveSmallIntegerField(choices=TURNOS)
+
+    turno = models.PositiveSmallIntegerField(
+        choices=TURNOS,
+    )
+
     entrenador = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -30,38 +35,122 @@ class Entrenamiento(models.Model):
         blank=True,
         related_name="entrenamientos",
     )
-    observaciones = models.TextField(blank=True)
+
+    observaciones = models.TextField(
+        blank=True,
+    )
+
+    finalizado = models.BooleanField(
+        default=False,
+    )
+
+    finalizado_el = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    finalizado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="entrenamientos_finalizados",
+    )
 
     class Meta:
-        unique_together = ("fecha", "turno")
-        ordering = ["-fecha", "turno"]
+        unique_together = (
+            "fecha",
+            "turno",
+        )
+
+        ordering = [
+            "-fecha",
+            "turno",
+        ]
 
     def __str__(self):
         if self.entrenador:
-            nombre = self.entrenador.get_full_name() or self.entrenador.username
+            nombre = (
+                self.entrenador.get_full_name()
+                or self.entrenador.username
+            )
         else:
             nombre = "Sin entrenador"
-        return f"{self.fecha} - Turno {self.turno} - {nombre}"
+
+        estado = (
+            "Finalizado"
+            if self.finalizado
+            else "Abierto"
+        )
+
+        return (
+            f"{self.fecha} - "
+            f"Turno {self.turno} - "
+            f"{nombre} - "
+            f"{estado}"
+        )
+
 
 
 class Asistencia(models.Model):
-    ESTADOS = [
-        ("pendiente", "Pendiente"),
-        ("asistio", "Asistió"),
-        ("ausente", "Ausente"),
-        ("tarde", "Tarde"),
-    ]
+    class MotivoAusencia(models.TextChoices):
+        ENFERMEDAD = "enfermedad", "Enfermedad"
+        VIAJE = "viaje", "Viaje"
+        COMPETENCIA = "competencia", "Competencia"
+        ESTUDIO = "estudio", "Estudio"
+        SIN_AVISO = "sin_aviso", "Sin aviso"
+        OTRO = "otro", "Otro"
 
-    jugador = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name="asistencias")
-    entrenamiento = models.ForeignKey(Entrenamiento, on_delete=models.CASCADE, related_name="asistencias")
-    estado = models.CharField(max_length=20, choices=ESTADOS, default="pendiente")
+    entrenamiento = models.ForeignKey(
+        Entrenamiento,
+        on_delete=models.CASCADE,
+        related_name="asistencias",
+    )
+
+    jugador = models.ForeignKey(
+        Jugador,
+        on_delete=models.CASCADE,
+        related_name="asistencias",
+    )
+
+    estado = models.CharField(
+        max_length=20,
+        choices=[
+            ("pendiente", "Pendiente"),
+            ("asistio", "Asistió"),
+            ("ausente", "Ausente"),
+            ("tarde", "Tarde"),
+        ],
+        default="pendiente",
+    )
+
+    motivo_ausencia = models.CharField(
+        max_length=20,
+        choices=MotivoAusencia.choices,
+        blank=True,
+        default="",
+    )
+
+    detalle_ausencia = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+    )
 
     class Meta:
-        unique_together = ("jugador", "entrenamiento")
-        ordering = ["jugador__apellido", "jugador__nombre"]
+        unique_together = (
+            "entrenamiento",
+            "jugador",
+        )
 
     def __str__(self):
-        return f"{self.jugador} - {self.entrenamiento} - {self.estado}"
+        return (
+            f"{self.jugador} - "
+            f"{self.entrenamiento.fecha} - "
+            f"Turno {self.entrenamiento.turno}"
+        )
+
+
 
 
 class Ejercicio(models.Model):
@@ -94,3 +183,232 @@ class EjercicioRealizado(models.Model):
 
     def __str__(self):
         return f"{self.jugador} - {self.fecha} - {self.ejercicio}"
+    
+class TrabajoTurno(models.Model):
+    class Tipo(models.TextChoices):
+        PAREJA = "pareja", "Pareja"
+        MULTIPELOTA = "multipelota", "Multipelota"
+        ENTRENADOR = "entrenador", "Con entrenador"
+        LIBRE = "libre", "Libre / descanso"
+        OTRO = "otro", "Otro"
+
+    entrenamiento = models.ForeignKey(
+        Entrenamiento,
+        on_delete=models.CASCADE,
+        related_name="trabajos",
+    )
+
+    cambio = models.PositiveIntegerField(
+        verbose_name="Número de cambio",
+    )
+
+    tipo = models.CharField(
+        max_length=20,
+        choices=Tipo.choices,
+        default=Tipo.PAREJA,
+    )
+
+    jugador_1 = models.ForeignKey(
+        Jugador,
+        on_delete=models.CASCADE,
+        related_name="trabajos_principales",
+        verbose_name="Jugador",
+    )
+
+    jugador_2 = models.ForeignKey(
+        Jugador,
+        on_delete=models.CASCADE,
+        related_name="trabajos_secundarios",
+        verbose_name="Compañero",
+        null=True,
+        blank=True,
+    )
+
+    detalle = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Detalle",
+        help_text="Ejemplo: recepción, saque y tercera pelota, trabajo físico, etc.",
+    )
+
+    class Meta:
+        ordering = ["cambio", "id"]
+        verbose_name = "Trabajo del turno"
+        verbose_name_plural = "Trabajos del turno"
+
+    def clean(self):
+        if self.tipo == self.Tipo.PAREJA:
+            if not self.jugador_2:
+                raise ValidationError({
+                    "jugador_2": "Para una pareja tenés que seleccionar dos jugadores."
+                })
+
+            if self.jugador_1_id == self.jugador_2_id:
+                raise ValidationError({
+                    "jugador_2": "Un jugador no puede formar pareja consigo mismo."
+                })
+
+        elif self.jugador_2:
+            raise ValidationError({
+                "jugador_2": "El segundo jugador solo se usa cuando el tipo es Pareja."
+            })
+
+    def __str__(self):
+        if self.tipo == self.Tipo.PAREJA and self.jugador_2:
+            trabajo = f"{self.jugador_1} - {self.jugador_2}"
+        else:
+            trabajo = f"{self.jugador_1} · {self.get_tipo_display()}"
+
+        return (
+            f"{self.entrenamiento.fecha} · "
+            f"Turno {self.entrenamiento.turno} · "
+            f"Cambio {self.cambio}: {trabajo}"
+        )
+        
+class ObservacionJugador(models.Model):
+    jugador = models.ForeignKey(
+        Jugador,
+        on_delete=models.CASCADE,
+        related_name="observaciones",
+    )
+
+    entrenamiento = models.ForeignKey(
+        Entrenamiento,
+        on_delete=models.CASCADE,
+        related_name="observaciones_jugadores",
+    )
+
+    texto = models.TextField(
+        verbose_name="Observación",
+    )
+
+    creada_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="observaciones_creadas",
+    )
+
+    creada_el = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    actualizada_el = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = ["-creada_el"]
+        verbose_name = "Observación de jugador"
+        verbose_name_plural = "Observaciones de jugadores"
+
+    def __str__(self):
+        return (
+            f"{self.jugador} · "
+            f"{self.entrenamiento.fecha} · "
+            f"Turno {self.entrenamiento.turno}"
+        )
+        
+class PartidoTurno(models.Model):
+    entrenamiento = models.ForeignKey(
+        Entrenamiento,
+        on_delete=models.CASCADE,
+        related_name="partidos",
+    )
+
+    jugador_1 = models.ForeignKey(
+        Jugador,
+        on_delete=models.CASCADE,
+        related_name="partidos_como_jugador_1",
+    )
+
+    jugador_2 = models.ForeignKey(
+        Jugador,
+        on_delete=models.CASCADE,
+        related_name="partidos_como_jugador_2",
+    )
+
+    detalle = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Ejemplo: partido final del turno o partido de entrenamiento.",
+    )
+
+    creado_el = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "Partido del turno"
+        verbose_name_plural = "Partidos del turno"
+
+    def __str__(self):
+        return (
+            f"{self.jugador_1} vs {self.jugador_2} "
+            f"· {self.entrenamiento.fecha} "
+            f"· Turno {self.entrenamiento.turno}"
+        )
+
+    @property
+    def sets_jugador_1(self):
+        return self.sets.filter(
+            puntos_jugador_1__gt=models.F("puntos_jugador_2")
+        ).count()
+
+    @property
+    def sets_jugador_2(self):
+        return self.sets.filter(
+            puntos_jugador_2__gt=models.F("puntos_jugador_1")
+        ).count()
+
+    @property
+    def resultado_general(self):
+        return f"{self.sets_jugador_1}-{self.sets_jugador_2}"
+
+    @property
+    def ganador(self):
+        if self.sets_jugador_1 > self.sets_jugador_2:
+            return self.jugador_1
+
+        if self.sets_jugador_2 > self.sets_jugador_1:
+            return self.jugador_2
+
+        return None
+
+
+class SetPartido(models.Model):
+    partido = models.ForeignKey(
+        PartidoTurno,
+        on_delete=models.CASCADE,
+        related_name="sets",
+    )
+
+    numero = models.PositiveIntegerField()
+
+    puntos_jugador_1 = models.PositiveIntegerField()
+
+    puntos_jugador_2 = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ["numero"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "partido",
+                    "numero",
+                ],
+                name="set_unico_por_partido",
+            ),
+        ]
+        verbose_name = "Set del partido"
+        verbose_name_plural = "Sets del partido"
+
+    def __str__(self):
+        return (
+            f"Set {self.numero}: "
+            f"{self.puntos_jugador_1}-"
+            f"{self.puntos_jugador_2}"
+        )

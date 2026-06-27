@@ -1,10 +1,17 @@
+```html
 {% extends "asistencia/base.html" %}
 
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>Jugadores</h2>
-    <a class="btn btn-primary" href="{% url 'crear_jugador' %}">+ Agregar jugador</a>
+
+    <a
+        class="btn btn-primary"
+        href="{% url 'crear_jugador' %}"
+    >
+        + Agregar jugador
+    </a>
 </div>
 
 <div class="card">
@@ -16,24 +23,49 @@
                         <tr>
                             <th>Nombre</th>
                             <th>Activo</th>
-                            <th></th>
+                            <th class="text-end">
+                                Acciones
+                            </th>
                         </tr>
                     </thead>
+
                     <tbody>
                         {% for jugador in jugadores %}
                             <tr>
-                                <td>{{ jugador }}</td>
+                                <td>
+                                    <strong>
+                                        {{ jugador }}
+                                    </strong>
+                                </td>
+
                                 <td>
                                     {% if jugador.activo %}
-                                        <span class="badge bg-success">Sí</span>
+                                        <span class="badge bg-success">
+                                            Sí
+                                        </span>
                                     {% else %}
-                                        <span class="badge bg-secondary">No</span>
+                                        <span class="badge bg-secondary">
+                                            No
+                                        </span>
                                     {% endif %}
                                 </td>
-                                <td>
-                                    <a class="btn btn-sm btn-outline-dark" href="{% url 'editar_jugador' jugador.id %}">
-                                        Editar
-                                    </a>
+
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-2 flex-wrap">
+                                        <a
+                                            class="btn btn-sm btn-outline-primary"
+                                            href="{% url 'historial_jugador' jugador.id %}"
+                                        >
+                                            Ver historial
+                                        </a>
+
+                                        <a
+                                            class="btn btn-sm btn-outline-dark"
+                                            href="{% url 'editar_jugador' jugador.id %}"
+                                        >
+                                            Editar
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         {% endfor %}
@@ -41,9 +73,12 @@
                 </table>
             </div>
         {% else %}
-            <p class="mb-0 text-muted">No hay jugadores cargados.</p>
+            <p class="mb-0 text-muted">
+                No hay jugadores cargados.
+            </p>
         {% endif %}
     </div>
 </div>
 
 {% endblock %}
+```
