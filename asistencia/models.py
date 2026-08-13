@@ -15,6 +15,20 @@ class Jugador(models.Model):
         return f"{self.nombre} {self.apellido}".strip()
 
 
+class Entrenador(models.Model):
+    nombre = models.CharField(max_length=100)
+    apellido = models.CharField(max_length=100, blank=True)
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["apellido", "nombre"]
+        verbose_name = "Entrenador"
+        verbose_name_plural = "Entrenadores"
+
+    def __str__(self):
+        return f"{self.nombre} {self.apellido}".strip()
+
+
 class Entrenamiento(models.Model):
     TURNOS = [
         (1, "Turno 1"),
@@ -36,8 +50,43 @@ class Entrenamiento(models.Model):
         related_name="entrenamientos",
     )
 
+    entrenador_responsable = models.ForeignKey(
+        Entrenador,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="entrenamientos_responsables",
+    )
+
     observaciones = models.TextField(
         blank=True,
+    )
+    
+
+
+    class MotivoNoEntrenamiento(models.TextChoices):
+        FERIADO = "feriado", "Feriado"
+        TORNEO = "torneo", "Torneo"
+        CLUB_CERRADO = "club_cerrado", "Club cerrado"
+        VIAJE = "viaje", "Viaje"
+        SUSPENDIDO = "suspendido", "Suspendido"
+        OTRO = "otro", "Otro"
+
+    no_se_entreno = models.BooleanField(
+        default=False,
+    )
+
+    motivo_no_entrenamiento = models.CharField(
+        max_length=30,
+        choices=MotivoNoEntrenamiento.choices,
+        blank=True,
+        default="",
+    )
+
+    detalle_no_entrenamiento = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
     )
 
     finalizado = models.BooleanField(
@@ -69,7 +118,9 @@ class Entrenamiento(models.Model):
         ]
 
     def __str__(self):
-        if self.entrenador:
+        if self.entrenador_responsable:
+            nombre = str(self.entrenador_responsable)
+        elif self.entrenador:
             nombre = (
                 self.entrenador.get_full_name()
                 or self.entrenador.username
@@ -263,6 +314,46 @@ class TrabajoTurno(models.Model):
             f"{self.entrenamiento.fecha} · "
             f"Turno {self.entrenamiento.turno} · "
             f"Cambio {self.cambio}: {trabajo}"
+        )
+        
+class EjercicioTurno(models.Model):
+    entrenamiento = models.ForeignKey(
+        Entrenamiento,
+        on_delete=models.CASCADE,
+        related_name="ejercicios_turno",
+    )
+
+    ejercicio = models.ForeignKey(
+        Ejercicio,
+        on_delete=models.CASCADE,
+        related_name="turnos_realizados",
+    )
+
+    creado_el = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        unique_together = (
+            "entrenamiento",
+            "ejercicio",
+        )
+
+        ordering = [
+            "entrenamiento__fecha",
+            "entrenamiento__turno",
+            "ejercicio__categoria",
+            "ejercicio__nombre",
+        ]
+
+        verbose_name = "Ejercicio del turno"
+        verbose_name_plural = "Ejercicios del turno"
+
+    def __str__(self):
+        return (
+            f"{self.entrenamiento.fecha} - "
+            f"Turno {self.entrenamiento.turno} - "
+            f"{self.ejercicio}"
         )
         
 class ObservacionJugador(models.Model):

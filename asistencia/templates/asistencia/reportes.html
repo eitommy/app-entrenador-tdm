@@ -11,6 +11,14 @@
         </p>
     </div>
 
+   <div class="d-flex gap-2 flex-wrap">
+    <a
+    href="{% url 'exportar_reporte_mensual' %}?fecha={{ hoy|date:'Y-m-d' }}"
+    class="btn btn-success"
+>
+    Exportar Excel
+</a>
+
     <a
         href="{% url 'inicio' %}"
         class="btn btn-outline-dark"
@@ -51,6 +59,154 @@
     </div>
 </div>
 
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Jugadores activos
+                </div>
+
+                <div class="fs-3 fw-bold">
+                    {{ resumen_general.total_jugadores }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Presentes mes
+                </div>
+
+                <div class="fs-3 fw-bold text-success">
+                    {{ resumen_general.total_mes_presentes }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Ausencias mes
+                </div>
+
+                <div class="fs-3 fw-bold text-danger">
+                    {{ resumen_general.total_mes_ausentes }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Días sin entrenamiento
+                </div>
+
+                <div class="fs-3 fw-bold text-danger">
+                    {{ resumen_general.dias_no_entrenados_mes }}
+                </div>
+
+                <small class="text-muted">
+                    {{ resumen_general.total_turnos_no_entrenados_mes }}
+                    turno{{ resumen_general.total_turnos_no_entrenados_mes|pluralize:"s" }}
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if turnos_no_entrenados_mes %}
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                <div>
+                    <h4 class="mb-1">
+                        Días sin entrenamiento
+                    </h4>
+
+                    <p class="text-muted mb-0">
+                        Estos días no cuentan como ausencia para los jugadores.
+                    </p>
+                </div>
+
+                <span class="badge bg-danger fs-6">
+                    {{ resumen_general.total_turnos_no_entrenados_mes }}
+                    turno{{ resumen_general.total_turnos_no_entrenados_mes|pluralize:"s" }}
+                </span>
+            </div>
+
+            {% if motivos_no_entrenamiento %}
+                <div class="mb-3">
+                    <div class="fw-bold mb-2">
+                        Motivos del mes
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for item in motivos_no_entrenamiento %}
+                            <span class="badge bg-light text-dark border">
+                                {{ item.motivo }}:
+                                {{ item.total }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th class="text-center">Turno</th>
+                            <th>Motivo</th>
+                            <th>Detalle</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for entrenamiento in turnos_no_entrenados_mes %}
+                            <tr>
+                                <td>
+                                    <strong>
+                                        {{ entrenamiento.fecha|date:"d/m/Y" }}
+                                    </strong>
+                                </td>
+
+                                <td class="text-center">
+                                    <span class="badge bg-danger">
+                                        Turno {{ entrenamiento.turno }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    {{ entrenamiento.get_motivo_no_entrenamiento_display }}
+                                </td>
+
+                                <td>
+                                    {% if entrenamiento.detalle_no_entrenamiento %}
+                                        {{ entrenamiento.detalle_no_entrenamiento }}
+                                    {% else %}
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
 <div class="card shadow-sm border-0">
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
@@ -61,6 +217,7 @@
 
                 <p class="text-muted mb-0">
                     Se toman como presentes los estados “Asistió” y “Tarde”.
+                    Los días marcados como “No se entrenó” no bajan el porcentaje.
                 </p>
             </div>
 
@@ -80,6 +237,9 @@
                             <th class="text-center">Mes</th>
                             <th class="text-center">
                                 Ausencias del mes
+                            </th>
+                            <th class="text-center">
+                                Pendientes
                             </th>
                             <th class="text-center">
                                 Motivo frecuente
@@ -116,6 +276,15 @@
                                             ausente{{ item.semana_ausentes|pluralize:"s" }}
                                         </small>
                                     {% endif %}
+
+                                    {% if item.semana_tardes > 0 %}
+                                        <br>
+
+                                        <small class="text-warning">
+                                            {{ item.semana_tardes }}
+                                            tarde{{ item.semana_tardes|pluralize:"s" }}
+                                        </small>
+                                    {% endif %}
                                 </td>
 
                                 <td class="text-center">
@@ -134,6 +303,15 @@
                                         <small class="text-danger">
                                             {{ item.mes_ausentes }}
                                             ausente{{ item.mes_ausentes|pluralize:"s" }}
+                                        </small>
+                                    {% endif %}
+
+                                    {% if item.mes_tardes > 0 %}
+                                        <br>
+
+                                        <small class="text-warning">
+                                            {{ item.mes_tardes }}
+                                            tarde{{ item.mes_tardes|pluralize:"s" }}
                                         </small>
                                     {% endif %}
                                 </td>
@@ -156,6 +334,32 @@
                                     {% else %}
                                         <span class="text-muted">
                                             Sin ausencias
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-center">
+                                    {% if item.mes_pendientes > 0 or item.semana_pendientes > 0 %}
+                                        {% if item.semana_pendientes > 0 %}
+                                            <div class="mb-1">
+                                                <span class="badge bg-warning text-dark">
+                                                    Semana:
+                                                    {{ item.semana_pendientes }}
+                                                </span>
+                                            </div>
+                                        {% endif %}
+
+                                        {% if item.mes_pendientes > 0 %}
+                                            <div>
+                                                <span class="badge bg-warning text-dark">
+                                                    Mes:
+                                                    {{ item.mes_pendientes }}
+                                                </span>
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">
+                                            -
                                         </span>
                                     {% endif %}
                                 </td>
@@ -223,9 +427,16 @@
             <span class="badge bg-danger">
                 Menos de 50%: baja asistencia
             </span>
+
+            <span class="badge bg-secondary">
+                Sin datos: no tiene asistencias cargadas
+            </span>
+
+            <span class="badge bg-light text-dark border">
+                No se entrenó: no cuenta como ausencia
+            </span>
         </div>
     </div>
 </div>
 
 {% endblock %}
-

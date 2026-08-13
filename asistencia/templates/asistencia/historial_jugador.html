@@ -9,16 +9,25 @@
         </h1>
 
         <p class="text-muted mb-0">
-            Seguimiento completo de asistencia, partidos, trabajos, ejercicios y observaciones.
+            Seguimiento completo de asistencia, partidos, trabajos, ejercicios del turno y observaciones.
         </p>
     </div>
 
-    <a
-        href="{% url 'lista_jugadores' %}"
-        class="btn btn-outline-dark"
-    >
-        ← Volver a jugadores
-    </a>
+    <div class="d-flex gap-2 flex-wrap">
+        <a
+            href="{% url 'seguimiento_semanal' %}?jugador={{ jugador.id }}&fecha={{ fecha_hasta|date:'Y-m-d' }}"
+            class="btn btn-outline-primary"
+        >
+            Ver semana
+        </a>
+
+        <a
+            href="{% url 'lista_jugadores' %}"
+            class="btn btn-outline-dark"
+        >
+            ← Volver a jugadores
+        </a>
+    </div>
 </div>
 
 <div class="card shadow-sm border-0 mb-4">
@@ -67,61 +76,82 @@
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-md-3">
+    <div class="col-lg-3 col-md-6">
         <div class="card shadow-sm border-0 h-100">
             <div class="card-body">
                 <div class="text-muted small">
-                    Turnos programados
+                    Asistencia del período
                 </div>
 
                 <div class="fs-3 fw-bold">
-                    {{ total_asistencias }}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-body">
-                <div class="text-muted small">
-                    Presentes
-                </div>
-
-                <div class="fs-3 fw-bold text-success">
-                    {{ total_presentes }}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-body">
-                <div class="text-muted small">
-                    Ausencias
-                </div>
-
-                <div class="fs-3 fw-bold text-danger">
-                    {{ total_ausencias }}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-body">
-                <div class="text-muted small">
-                    Asistencia
-                </div>
-
-                <div class="fs-3 fw-bold">
-                    {{ porcentaje_asistencia }}%
+                    {{ resumen.porcentaje_asistencia }}%
                 </div>
 
                 <div class="small text-muted">
-                    Tardanzas: {{ total_tardes }}
+                    {{ resumen.total_presentes }}/{{ resumen.total_asistencias }}
+                    presentes
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Asistencia del mes
+                </div>
+
+                <div class="fs-3 fw-bold">
+                    {{ resumen.mes_porcentaje }}%
+                </div>
+
+                <div class="small text-muted">
+                    Desde {{ inicio_mes|date:"d/m/Y" }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Partidos
+                </div>
+
+                <div class="fs-3 fw-bold">
+                    {{ resumen.total_partidos }}
+                </div>
+
+                <div class="small">
+                    <span class="text-success">
+                        {{ resumen.total_partidos_ganados }} G
+                    </span>
+                    ·
+                    <span class="text-danger">
+                        {{ resumen.total_partidos_perdidos }} P
+                    </span>
+                    ·
+                    {{ resumen.porcentaje_victorias }}%
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Actividad cargada
+                </div>
+
+                <div class="fs-3 fw-bold">
+                    {{ resumen.total_ejercicios }}
+                </div>
+
+                <div class="small text-muted">
+                    ejercicios · {{ resumen.total_trabajos }} trabajos
                 </div>
             </div>
         </div>
@@ -129,132 +159,221 @@
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
+    <div class="col-lg-3 col-md-6">
         <div class="card shadow-sm border-0 h-100">
             <div class="card-body">
                 <div class="text-muted small">
-                    Partidos jugados
-                </div>
-
-                <div class="fs-3 fw-bold">
-                    {{ total_partidos }}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-4">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-body">
-                <div class="text-muted small">
-                    Ganados
+                    Presentes
                 </div>
 
                 <div class="fs-3 fw-bold text-success">
-                    {{ total_partidos_ganados }}
+                    {{ resumen.total_presentes }}
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-lg-3 col-md-6">
         <div class="card shadow-sm border-0 h-100">
             <div class="card-body">
                 <div class="text-muted small">
-                    Perdidos
+                    Tardes
+                </div>
+
+                <div class="fs-3 fw-bold text-warning">
+                    {{ resumen.total_tardes }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Ausencias
                 </div>
 
                 <div class="fs-3 fw-bold text-danger">
-                    {{ total_partidos_perdidos }}
+                    {{ resumen.total_ausencias }}
+                </div>
+
+                <div class="small text-muted">
+                    {{ resumen.ausencias_justificadas }} justificadas ·
+                    {{ resumen.ausencias_sin_aviso }} sin aviso
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Pendientes / no entrenamiento
+                </div>
+
+                <div class="fs-3 fw-bold">
+                    {{ resumen.total_pendientes }}
+                </div>
+
+                <div class="small text-muted">
+                    {{ resumen.turnos_no_entrenados }} turno{{ resumen.turnos_no_entrenados|pluralize:"s" }} sin entrenamiento
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-        <h4 class="mb-3">
-            Asistencias
-        </h4>
+{% if turnos_no_entrenados %}
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <h4 class="mb-3">
+                Días sin entrenamiento dentro del período
+            </h4>
 
-        {% if asistencias %}
-            <div class="table-responsive">
-                <table class="table align-middle">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Turno</th>
-                            <th>Estado</th>
-                            <th>Motivo</th>
-                            <th>Entrenador</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        {% for asistencia in asistencias %}
-                            <tr>
-                                <td>
-                                    {{ asistencia.entrenamiento.fecha|date:"d/m/Y" }}
-                                </td>
-
-                                <td>
-                                    Turno {{ asistencia.entrenamiento.turno }}
-                                </td>
-
-                                <td>
-                                    {% if asistencia.estado == "asistio" %}
-                                        <span class="badge bg-success">
-                                            Asistió
-                                        </span>
-                                    {% elif asistencia.estado == "tarde" %}
-                                        <span class="badge bg-warning text-dark">
-                                            Tarde
-                                        </span>
-                                    {% elif asistencia.estado == "ausente" %}
-                                        <span class="badge bg-danger">
-                                            Ausente
-                                        </span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">
-                                            Sin marcar
-                                        </span>
-                                    {% endif %}
-                                </td>
-
-                                <td>
-                                    {% if asistencia.estado == "ausente" and asistencia.motivo_ausencia %}
-                                        <strong>
-                                            {{ asistencia.get_motivo_ausencia_display }}
-                                        </strong>
-
-                                        {% if asistencia.detalle_ausencia %}
-                                            <div class="small text-muted">
-                                                {{ asistencia.detalle_ausencia }}
-                                            </div>
-                                        {% endif %}
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-
-                                <td>
-                                    {% if asistencia.entrenamiento.entrenador %}
-                                        {{ asistencia.entrenamiento.entrenador.get_full_name|default:asistencia.entrenamiento.entrenador.username }}
-                                    {% else %}
-                                        Sin entrenador
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <p class="text-muted mb-0">
-                No hay asistencias en el período seleccionado.
+            <p class="text-muted">
+                Estos turnos no cuentan como ausencia para el jugador.
             </p>
-        {% endif %}
+
+            <div class="d-flex flex-wrap gap-2">
+                {% for entrenamiento in turnos_no_entrenados %}
+                    <span class="badge bg-light text-dark border">
+                        {{ entrenamiento.fecha|date:"d/m/Y" }}
+                        · Turno {{ entrenamiento.turno }}
+                        · {{ entrenamiento.get_motivo_no_entrenamiento_display }}
+                    </span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <h4 class="mb-3">
+                    Asistencias
+                </h4>
+
+                {% if asistencias %}
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Turno</th>
+                                    <th>Estado</th>
+                                    <th>Motivo</th>
+                                    <th>Entrenador</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {% for asistencia in asistencias %}
+                                    <tr>
+                                        <td>
+                                            {{ asistencia.entrenamiento.fecha|date:"d/m/Y" }}
+                                        </td>
+
+                                        <td>
+                                            Turno {{ asistencia.entrenamiento.turno }}
+                                        </td>
+
+                                        <td>
+                                            {% if asistencia.estado == "asistio" %}
+                                                <span class="badge bg-success">
+                                                    Asistió
+                                                </span>
+                                            {% elif asistencia.estado == "tarde" %}
+                                                <span class="badge bg-warning text-dark">
+                                                    Tarde
+                                                </span>
+                                            {% elif asistencia.estado == "ausente" %}
+                                                <span class="badge bg-danger">
+                                                    Ausente
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">
+                                                    Sin marcar
+                                                </span>
+                                            {% endif %}
+                                        </td>
+
+                                        <td>
+                                            {% if asistencia.estado == "ausente" and asistencia.motivo_ausencia %}
+                                                <strong>
+                                                    {{ asistencia.get_motivo_ausencia_display }}
+                                                </strong>
+
+                                                {% if asistencia.detalle_ausencia %}
+                                                    <div class="small text-muted">
+                                                        {{ asistencia.detalle_ausencia }}
+                                                    </div>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+
+                                        <td>
+                                            {% if asistencia.entrenamiento.entrenador_responsable %}
+                                                {{ asistencia.entrenamiento.entrenador_responsable }}
+                                            {% elif asistencia.entrenamiento.entrenador %}
+                                                {{ asistencia.entrenamiento.entrenador.get_full_name|default:asistencia.entrenamiento.entrenador.username }}
+                                            {% else %}
+                                                Sin entrenador
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">
+                        No hay asistencias en el período seleccionado.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <h4 class="mb-3">
+                    Ejercicios más trabajados
+                </h4>
+
+                {% if ejercicios_frecuentes %}
+                    <div class="d-flex flex-column gap-2">
+                        {% for item in ejercicios_frecuentes %}
+                            <div class="d-flex justify-content-between align-items-center border rounded-3 p-2">
+                                <div>
+                                    <strong>
+                                        {{ item.ejercicio__nombre }}
+                                    </strong>
+
+                                    <div class="small text-muted">
+                                        {{ item.ejercicio__categoria }}
+                                    </div>
+                                </div>
+
+                                <span class="badge bg-primary">
+                                    {{ item.total }}
+                                </span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">
+                        No hay ejercicios suficientes para armar ranking.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 
@@ -266,8 +385,8 @@
             </h4>
 
             <span class="badge bg-dark fs-6">
-                {{ total_partidos }}
-                partido{{ total_partidos|pluralize:"s" }}
+                {{ resumen.total_partidos }}
+                partido{{ resumen.total_partidos|pluralize:"s" }}
             </span>
         </div>
 
@@ -363,62 +482,103 @@
     </div>
 </div>
 
-<div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-        <h4 class="mb-3">
-            Trabajos y parejas
-        </h4>
+<div class="row g-3 mb-4">
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <h4 class="mb-3">
+                    Trabajos y parejas
+                </h4>
 
-        {% if trabajos %}
-            <div class="d-flex flex-column gap-3">
-                {% for trabajo in trabajos %}
-                    <div class="border rounded-3 p-3">
-                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-                            <div>
-                                <div class="fw-semibold">
-                                    {{ trabajo.entrenamiento.fecha|date:"d/m/Y" }}
-                                    · Turno {{ trabajo.entrenamiento.turno }}
-                                    · Cambio {{ trabajo.cambio }}
-                                </div>
+                {% if trabajos %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for trabajo in trabajos %}
+                            <div class="border rounded-3 p-3">
+                                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                                    <div>
+                                        <div class="fw-semibold">
+                                            {{ trabajo.entrenamiento.fecha|date:"d/m/Y" }}
+                                            · Turno {{ trabajo.entrenamiento.turno }}
+                                            · Cambio {{ trabajo.cambio }}
+                                        </div>
 
-                                <div class="mt-1">
-                                    {% if trabajo.tipo == "pareja" %}
-                                        {% if trabajo.jugador_1_id == jugador.id %}
-                                            Con {{ trabajo.jugador_2 }}
-                                        {% else %}
-                                            Con {{ trabajo.jugador_1 }}
+                                        <div class="mt-1">
+                                            {% if trabajo.tipo == "pareja" %}
+                                                {% if trabajo.jugador_1_id == jugador.id %}
+                                                    Con {{ trabajo.jugador_2 }}
+                                                {% else %}
+                                                    Con {{ trabajo.jugador_1 }}
+                                                {% endif %}
+                                            {% else %}
+                                                {{ trabajo.get_tipo_display }}
+                                            {% endif %}
+                                        </div>
+
+                                        {% if trabajo.detalle %}
+                                            <div class="small text-muted mt-2">
+                                                {{ trabajo.detalle }}
+                                            </div>
                                         {% endif %}
-                                    {% else %}
+                                    </div>
+
+                                    <span class="badge bg-primary">
                                         {{ trabajo.get_tipo_display }}
+                                    </span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">
+                        No hay trabajos registrados en el período seleccionado.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <h4 class="mb-3">
+                    Observaciones
+                </h4>
+
+                {% if observaciones %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for observacion in observaciones %}
+                            <div class="border rounded-3 p-3 bg-light">
+                                <p class="mb-2">
+                                    {{ observacion.texto }}
+                                </p>
+
+                                <div class="small text-muted">
+                                    {{ observacion.entrenamiento.fecha|date:"d/m/Y" }}
+                                    · Turno {{ observacion.entrenamiento.turno }}
+                                    · {{ observacion.creada_el|date:"H:i" }}
+
+                                    {% if observacion.creada_por %}
+                                        ·
+                                        {{ observacion.creada_por.get_full_name|default:observacion.creada_por.username }}
                                     {% endif %}
                                 </div>
-
-                                {% if trabajo.detalle %}
-                                    <div class="small text-muted mt-2">
-                                        {{ trabajo.detalle }}
-                                    </div>
-                                {% endif %}
                             </div>
-
-                            <span class="badge bg-primary">
-                                {{ trabajo.get_tipo_display }}
-                            </span>
-                        </div>
+                        {% endfor %}
                     </div>
-                {% endfor %}
+                {% else %}
+                    <p class="text-muted mb-0">
+                        No hay observaciones en el período seleccionado.
+                    </p>
+                {% endif %}
             </div>
-        {% else %}
-            <p class="text-muted mb-0">
-                No hay trabajos registrados en el período seleccionado.
-            </p>
-        {% endif %}
+        </div>
     </div>
 </div>
 
-<div class="card shadow-sm border-0 mb-4">
+<div class="card shadow-sm border-0">
     <div class="card-body">
         <h4 class="mb-3">
-            Ejercicios
+            Ejercicios del período
         </h4>
 
         {% if ejercicios %}
@@ -427,6 +587,7 @@
                     <thead>
                         <tr>
                             <th>Fecha</th>
+                            <th>Turno</th>
                             <th>Categoría</th>
                             <th>Ejercicio</th>
                         </tr>
@@ -437,6 +598,10 @@
                             <tr>
                                 <td>
                                     {{ item.fecha|date:"d/m/Y" }}
+                                </td>
+
+                                <td>
+                                    Turno {{ item.turno }}
                                 </td>
 
                                 <td>
@@ -454,41 +619,6 @@
         {% else %}
             <p class="text-muted mb-0">
                 No hay ejercicios registrados en el período seleccionado.
-            </p>
-        {% endif %}
-    </div>
-</div>
-
-<div class="card shadow-sm border-0">
-    <div class="card-body">
-        <h4 class="mb-3">
-            Observaciones
-        </h4>
-
-        {% if observaciones %}
-            <div class="d-flex flex-column gap-3">
-                {% for observacion in observaciones %}
-                    <div class="border rounded-3 p-3 bg-light">
-                        <p class="mb-2">
-                            {{ observacion.texto }}
-                        </p>
-
-                        <div class="small text-muted">
-                            {{ observacion.entrenamiento.fecha|date:"d/m/Y" }}
-                            · Turno {{ observacion.entrenamiento.turno }}
-                            · {{ observacion.creada_el|date:"H:i" }}
-
-                            {% if observacion.creada_por %}
-                                ·
-                                {{ observacion.creada_por.get_full_name|default:observacion.creada_por.username }}
-                            {% endif %}
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <p class="text-muted mb-0">
-                No hay observaciones en el período seleccionado.
             </p>
         {% endif %}
     </div>

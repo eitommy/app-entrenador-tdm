@@ -5,8 +5,8 @@
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
     <div>
         <h1 class="mb-1">Seguimiento semanal</h1>
-        <p class="text-secondary mb-0">
-            Revisá la asistencia, los ejercicios, los trabajos y los partidos realizados por jugador durante la semana.
+        <p class="text-muted mb-0">
+            Revisá asistencia, trabajos, partidos y ejercicios por jugador durante la semana.
         </p>
     </div>
 
@@ -19,7 +19,7 @@
     <div class="card-body">
         <form method="get" class="row g-3 align-items-end">
             <div class="col-md-5">
-                <label class="form-label">Jugador</label>
+                <label class="form-label fw-semibold">Jugador</label>
 
                 <select name="jugador" class="form-select" required>
                     <option value="">Seleccionar jugador</option>
@@ -38,7 +38,7 @@
             </div>
 
             <div class="col-md-4">
-                <label class="form-label">Fecha de referencia</label>
+                <label class="form-label fw-semibold">Fecha de referencia</label>
 
                 <input
                     type="date"
@@ -88,110 +88,84 @@
 
 {% if resumen %}
     <div class="row g-3 mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Asistencia</div>
+                    <div class="fs-3 fw-bold">{{ resumen.porcentaje }}%</div>
+                    <small class="text-muted">
+                        {{ resumen.total_presentes }}/{{ resumen.total_dias_programados }} presentes
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Presentes</div>
+                    <div class="fs-3 fw-bold text-success">{{ resumen.total_presentes }}</div>
+                    <small class="text-muted">
+                        Tardes: {{ resumen.total_tardes }}
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Ausencias</div>
+                    <div class="fs-3 fw-bold text-danger">{{ resumen.total_ausencias }}</div>
+                    <small class="text-muted">
+                        No cuentan días sin entrenamiento
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Días sin entrenamiento</div>
+                    <div class="fs-3 fw-bold text-danger">{{ resumen.total_dias_no_entrenados }}</div>
+                    <small class="text-muted">
+                        No bajan el porcentaje
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
         <div class="col-lg-4">
             <div class="card shadow-sm border-0 h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div>
-                            <div class="text-muted small">Asistencia</div>
-                            <h5 class="mb-0">{{ resumen.porcentaje }}%</h5>
-                        </div>
-
-                        {% if resumen.total_dias_programados > 0 and resumen.total_presentes == 0 %}
-                            <span class="badge bg-warning text-dark">
-                                Pendiente de marcar
-                            </span>
-                        {% endif %}
-                    </div>
-
-                    <div class="row g-2 text-center">
-                        <div class="col-3">
-                            <div class="border rounded-3 p-2 h-100">
-                                <div class="small text-muted">Días</div>
-                                <div class="fw-bold">{{ resumen.total_dias_programados }}</div>
-                            </div>
-                        </div>
-
-                        <div class="col-3">
-                            <div class="border rounded-3 p-2 h-100">
-                                <div class="small text-muted">Presentes</div>
-                                <div class="fw-bold text-success">{{ resumen.total_presentes }}</div>
-                            </div>
-                        </div>
-
-                        <div class="col-3">
-                            <div class="border rounded-3 p-2 h-100">
-                                <div class="small text-muted">Tardes</div>
-                                <div class="fw-bold text-warning">{{ resumen.total_tardes }}</div>
-                            </div>
-                        </div>
-
-                        <div class="col-3">
-                            <div class="border rounded-3 p-2 h-100">
-                                <div class="small text-muted">Ausencias</div>
-                                <div class="fw-bold text-danger">{{ resumen.total_ausencias }}</div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="card-body text-center">
+                    <div class="text-muted small">Ejercicios</div>
+                    <div class="fs-3 fw-bold">{{ resumen.total_ejercicios }}</div>
                 </div>
             </div>
         </div>
 
         <div class="col-lg-4">
             <div class="card shadow-sm border-0 h-100">
-                <div class="card-body">
-                    <div class="text-muted small mb-2">
-                        Entrenamiento
-                    </div>
-
-                    <div class="row g-2 text-center">
-                        <div class="col-6">
-                            <div class="border rounded-3 p-3 h-100">
-                                <div class="small text-muted">Ejercicios</div>
-                                <div class="fs-3 fw-bold">{{ resumen.total_ejercicios }}</div>
-                            </div>
-                        </div>
-
-                        <div class="col-6">
-                            <div class="border rounded-3 p-3 h-100">
-                                <div class="small text-muted">Trabajos</div>
-                                <div class="fs-3 fw-bold text-primary">{{ resumen.total_trabajos }}</div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="card-body text-center">
+                    <div class="text-muted small">Trabajos</div>
+                    <div class="fs-3 fw-bold text-primary">{{ resumen.total_trabajos }}</div>
                 </div>
             </div>
         </div>
 
         <div class="col-lg-4">
             <div class="card shadow-sm border-0 h-100">
-                <div class="card-body">
-                    <div class="text-muted small mb-2">
-                        Partidos
-                    </div>
+                <div class="card-body text-center">
+                    <div class="text-muted small">Partidos</div>
+                    <div class="fs-3 fw-bold">{{ resumen.total_partidos }}</div>
 
-                    <div class="row g-2 text-center">
-                        <div class="col-4">
-                            <div class="border rounded-3 p-3 h-100">
-                                <div class="small text-muted">Jugados</div>
-                                <div class="fs-3 fw-bold">{{ resumen.total_partidos }}</div>
-                            </div>
-                        </div>
-
-                        <div class="col-4">
-                            <div class="border rounded-3 p-3 h-100">
-                                <div class="small text-muted">Ganados</div>
-                                <div class="fs-3 fw-bold text-success">{{ resumen.total_partidos_ganados }}</div>
-                            </div>
-                        </div>
-
-                        <div class="col-4">
-                            <div class="border rounded-3 p-3 h-100">
-                                <div class="small text-muted">Perdidos</div>
-                                <div class="fs-3 fw-bold text-danger">{{ resumen.total_partidos_perdidos }}</div>
-                            </div>
-                        </div>
-                    </div>
+                    <small class="text-muted">
+                        {{ resumen.total_partidos_ganados }} ganados ·
+                        {{ resumen.total_partidos_perdidos }} perdidos
+                    </small>
                 </div>
             </div>
         </div>
@@ -205,7 +179,7 @@
                 <h4 class="mb-1">Detalle de la semana</h4>
 
                 <p class="text-muted mb-0">
-                    Asistencia, turnos, trabajos, partidos y ejercicios cargados por día.
+                    Resumen día por día de asistencia, turnos, trabajos, partidos y ejercicios.
                 </p>
             </div>
 
@@ -229,7 +203,39 @@
 
                 <tbody>
                     {% for fila in filas %}
-                        {% if fila.asistencia_texto == "Sin actividad" %}
+                        {% if fila.no_se_entreno and fila.asistencia_texto == "No se entrenó" %}
+                            <tr class="table-danger">
+                                <td style="min-width: 120px;" class="py-3">
+                                    <strong>{{ fila.dia|date:"l" }}</strong>
+                                    <br>
+                                    <small>{{ fila.dia|date:"d/m/Y" }}</small>
+                                </td>
+
+                                <td colspan="5" class="py-3">
+                                    <div class="fw-bold mb-2">
+                                        No se entrenó
+                                    </div>
+
+                                    <div class="d-flex flex-column gap-1">
+                                        {% for motivo in fila.motivos_no_entrenamiento %}
+                                            <div>
+                                                <span class="badge bg-danger">
+                                                    Turno {{ motivo.turno }}
+                                                </span>
+
+                                                <span class="ms-2">
+                                                    {{ motivo.motivo }}
+                                                </span>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+
+                                    <small class="text-muted d-block mt-2">
+                                        Este día no cuenta como ausencia.
+                                    </small>
+                                </td>
+                            </tr>
+                        {% elif fila.asistencia_texto == "Sin actividad" %}
                             <tr class="table-light">
                                 <td style="min-width: 120px;" class="py-2">
                                     <strong>{{ fila.dia|date:"l" }}</strong>
@@ -249,6 +255,12 @@
                                     <strong>{{ fila.dia|date:"l" }}</strong>
                                     <br>
                                     <small class="text-muted">{{ fila.dia|date:"d/m/Y" }}</small>
+
+                                    {% if fila.no_se_entreno %}
+                                        <div class="small text-danger fw-semibold mt-1">
+                                            También hay turno sin entrenamiento
+                                        </div>
+                                    {% endif %}
                                 </td>
 
                                 <td class="text-center">
@@ -361,8 +373,8 @@
                                     {% endif %}
                                 </td>
 
-                                <td style="min-width: 260px;">
-                                    {% if fila.ejercicios_por_categoria %}
+                                <td style="min-width: 420px;">
+                                    {% if fila.ejercicios_por_turno %}
                                         <div class="mb-2">
                                             <span class="badge bg-primary">
                                                 {{ fila.cantidad_ejercicios }}
@@ -371,17 +383,27 @@
                                         </div>
 
                                         <div class="d-flex flex-column gap-2">
-                                            {% for categoria, ejercicios in fila.ejercicios_por_categoria.items %}
+                                            {% for bloque in fila.ejercicios_por_turno %}
                                                 <div class="border rounded p-2 bg-light">
-                                                    <div class="fw-bold small mb-2">
-                                                        {{ categoria }}
+                                                    <div class="fw-bold mb-2">
+                                                        Turno {{ bloque.turno }}
                                                     </div>
 
-                                                    <div class="d-flex flex-wrap gap-1">
-                                                        {% for ejercicio in ejercicios %}
-                                                            <span class="badge bg-white text-dark border">
-                                                                {{ ejercicio }}
-                                                            </span>
+                                                    <div class="d-flex flex-column gap-2">
+                                                        {% for categoria, ejercicios in bloque.categorias.items %}
+                                                            <div class="d-flex align-items-start gap-2 flex-wrap">
+                                                                <span class="badge bg-secondary">
+                                                                    {{ categoria }}
+                                                                </span>
+
+                                                                <div class="d-flex flex-wrap gap-1">
+                                                                    {% for ejercicio in ejercicios %}
+                                                                        <span class="badge bg-white text-dark border">
+                                                                            {{ ejercicio }}
+                                                                        </span>
+                                                                    {% endfor %}
+                                                                </div>
+                                                            </div>
                                                         {% endfor %}
                                                     </div>
                                                 </div>

@@ -4,8 +4,17 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django.forms import inlineformset_factory
 
-from .models import Jugador, Ejercicio, Entrenamiento, TrabajoTurno, Asistencia, ObservacionJugador,PartidoTurno,SetPartido
-
+from .models import (
+    Jugador,
+    Ejercicio,
+    Entrenamiento,
+    Entrenador,
+    TrabajoTurno,
+    Asistencia,
+    ObservacionJugador,
+    PartidoTurno,
+    SetPartido,
+)
 class RegistroEntrenadorForm(UserCreationForm):
     first_name = forms.CharField(
         label="Nombre",
@@ -135,15 +144,151 @@ class EjercicioForm(forms.ModelForm):
 class EntrenamientoInfoForm(forms.ModelForm):
     class Meta:
         model = Entrenamiento
-        fields = ["observaciones"]
+        fields = [
+            "entrenador_responsable",
+            "observaciones",
+        ]
+
+        labels = {
+            "entrenador_responsable": "Entrenador responsable",
+            "observaciones": "Observaciones",
+        }
+
         widgets = {
+            "entrenador_responsable": forms.Select(attrs={
+                "class": "form-select",
+            }),
             "observaciones": forms.Textarea(attrs={
                 "class": "form-control",
                 "rows": 3,
                 "placeholder": "Observaciones del turno...",
             }),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["entrenador_responsable"].required = False
+        self.fields["entrenador_responsable"].queryset = (
+            Entrenador.objects
+            .filter(activo=True)
+            .order_by("apellido", "nombre")
+        )
+
+        self.fields["entrenador_responsable"].empty_label = (
+            "Seleccionar entrenador"
+        )
         
+    class EntrenadorForm(forms.ModelForm):
+        class Meta:
+            model = Entrenador
+            fields = [
+            "nombre",
+            "apellido",
+        ]
+
+        widgets = {
+            "nombre": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Nombre",
+                "autocomplete": "off",
+            }),
+            "apellido": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Apellido",
+                "autocomplete": "off",
+            }),
+        }
+
+    def clean_nombre(self):
+        nombre = self.cleaned_data.get("nombre", "").strip()
+
+        if not nombre:
+            raise forms.ValidationError(
+                "El nombre del entrenador es obligatorio."
+            )
+
+        return nombre
+
+    def clean_apellido(self):
+        return self.cleaned_data.get("apellido", "").strip()
+    
+class NoEntrenamientoForm(forms.ModelForm):
+    class Meta:
+        model = Entrenamiento
+        fields = [
+            "no_se_entreno",
+            "motivo_no_entrenamiento",
+            "detalle_no_entrenamiento",
+        ]
+
+        labels = {
+            "no_se_entreno": "No se entrenó",
+            "motivo_no_entrenamiento": "Motivo",
+            "detalle_no_entrenamiento": "Detalle opcional",
+        }
+
+        widgets = {
+            "no_se_entreno": forms.CheckboxInput(attrs={
+                "class": "form-check-input",
+            }),
+            "motivo_no_entrenamiento": forms.Select(attrs={
+                "class": "form-select",
+            }),
+            "detalle_no_entrenamiento": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Ejemplo: feriado nacional, torneo, club cerrado...",
+                "autocomplete": "off",
+            }),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        no_se_entreno = cleaned_data.get("no_se_entreno")
+        motivo = cleaned_data.get("motivo_no_entrenamiento")
+
+        if no_se_entreno and not motivo:
+            self.add_error(
+                "motivo_no_entrenamiento",
+                "Seleccioná un motivo.",
+            )
+
+        return cleaned_data
+        
+class EntrenadorForm(forms.ModelForm):
+    class Meta:
+        model = Entrenador
+        fields = [
+            "nombre",
+            "apellido",
+        ]
+
+        widgets = {
+            "nombre": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Nombre",
+                "autocomplete": "off",
+            }),
+            "apellido": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Apellido",
+                "autocomplete": "off",
+            }),
+        }
+
+    def clean_nombre(self):
+        nombre = self.cleaned_data.get("nombre", "").strip()
+
+        if not nombre:
+            raise forms.ValidationError(
+                "El nombre del entrenador es obligatorio."
+            )
+
+        return nombre
+
+    def clean_apellido(self):
+        return self.cleaned_data.get("apellido", "").strip()
 
 class TrabajoTurnoForm(forms.ModelForm):
     class Meta:
