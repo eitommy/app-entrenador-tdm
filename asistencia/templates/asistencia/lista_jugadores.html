@@ -2,26 +2,114 @@
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Jugadores</h2>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <h1 class="mb-1">
+            Jugadores
+        </h1>
 
-    <a
-        class="btn btn-primary"
-        href="{% url 'crear_jugador' %}"
-    >
-        + Agregar jugador
-    </a>
+        <p class="text-muted mb-0">
+            Panel para ver estado, asistencia del mes y acceso rápido al historial.
+        </p>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap">
+        <a
+            class="btn btn-outline-dark"
+            href="{% url 'inicio' %}"
+        >
+            ← Carga diaria
+        </a>
+
+        <a
+            class="btn btn-outline-primary"
+            href="{% url 'reportes' %}"
+        >
+            Ver reportes
+        </a>
+
+        <a
+            class="btn btn-primary"
+            href="{% url 'crear_jugador' %}"
+        >
+            + Agregar jugador
+        </a>
+    </div>
 </div>
 
-<div class="card">
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Total cargados
+                </div>
+
+                <div class="fs-3 fw-bold">
+                    {{ total_jugadores }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Activos
+                </div>
+
+                <div class="fs-3 fw-bold text-success">
+                    {{ jugadores_activos }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="text-muted small">
+                    Inactivos
+                </div>
+
+                <div class="fs-3 fw-bold text-secondary">
+                    {{ jugadores_inactivos }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
     <div class="card-body">
-        {% if jugadores %}
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+            <div>
+                <h4 class="mb-1">
+                    Listado de jugadores
+                </h4>
+
+                <p class="text-muted mb-0">
+                    La asistencia del mes no cuenta los turnos marcados como “No se entrenó”.
+                </p>
+            </div>
+
+            <span class="badge bg-dark fs-6">
+                {{ total_jugadores }}
+                jugador{{ total_jugadores|pluralize:"es" }}
+            </span>
+        </div>
+
+        {% if jugadores_info %}
             <div class="table-responsive">
-                <table class="table align-middle">
+                <table class="table align-middle mb-0">
                     <thead>
                         <tr>
-                            <th>Nombre</th>
-                            <th>Activo</th>
+                            <th>Jugador</th>
+                            <th>Estado</th>
+                            <th>Última asistencia</th>
+                            <th>Asistencia del mes</th>
+                            <th>Ausencias del mes</th>
                             <th class="text-end">
                                 Acciones
                             </th>
@@ -29,22 +117,92 @@
                     </thead>
 
                     <tbody>
-                        {% for jugador in jugadores %}
+                        {% for item in jugadores_info %}
                             <tr>
                                 <td>
-                                    <strong>
-                                        {{ jugador }}
-                                    </strong>
+                                    <div class="fw-bold">
+                                        {{ item.jugador }}
+                                    </div>
                                 </td>
 
                                 <td>
-                                    {% if jugador.activo %}
+                                    {% if item.jugador.activo %}
                                         <span class="badge bg-success">
-                                            Sí
+                                            Activo
                                         </span>
                                     {% else %}
                                         <span class="badge bg-secondary">
-                                            No
+                                            Inactivo
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if item.ultima_asistencia %}
+                                        <strong>
+                                            {{ item.ultima_asistencia.entrenamiento.fecha|date:"d/m/Y" }}
+                                        </strong>
+
+                                        <div class="small text-muted">
+                                            Turno {{ item.ultima_asistencia.entrenamiento.turno }}
+                                            ·
+                                            {% if item.ultima_asistencia.estado == "asistio" %}
+                                                Asistió
+                                            {% elif item.ultima_asistencia.estado == "tarde" %}
+                                                Tarde
+                                            {% elif item.ultima_asistencia.estado == "ausente" %}
+                                                Ausente
+                                            {% else %}
+                                                Pendiente
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">
+                                            Sin asistencias
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if item.mes_total > 0 %}
+                                        <div class="d-flex align-items-center gap-2">
+                                            <strong>
+                                                {{ item.mes_porcentaje }}%
+                                            </strong>
+
+                                            {% if item.mes_porcentaje >= 80 %}
+                                                <span class="badge bg-success">
+                                                    Bien
+                                                </span>
+                                            {% elif item.mes_porcentaje >= 50 %}
+                                                <span class="badge bg-warning text-dark">
+                                                    Media
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger">
+                                                    Baja
+                                                </span>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="small text-muted">
+                                            {{ item.mes_presentes }}/{{ item.mes_total }} presentes
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">
+                                            Sin datos del mes
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if item.mes_ausentes > 0 %}
+                                        <span class="badge bg-danger">
+                                            {{ item.mes_ausentes }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">
+                                            Sin ausencias
                                         </span>
                                     {% endif %}
                                 </td>
@@ -52,15 +210,15 @@
                                 <td class="text-end">
                                     <div class="d-flex justify-content-end gap-2 flex-wrap">
                                         <a
-                                            class="btn btn-sm btn-outline-primary"
-                                            href="{% url 'historial_jugador' jugador.id %}"
+                                            class="btn btn-sm btn-primary"
+                                            href="{% url 'historial_jugador' item.jugador.id %}"
                                         >
-                                            Ver historial
+                                            Historial
                                         </a>
 
                                         <a
                                             class="btn btn-sm btn-outline-dark"
-                                            href="{% url 'editar_jugador' jugador.id %}"
+                                            href="{% url 'editar_jugador' item.jugador.id %}"
                                         >
                                             Editar
                                         </a>
@@ -72,12 +230,24 @@
                 </table>
             </div>
         {% else %}
-            <p class="mb-0 text-muted">
-                No hay jugadores cargados.
-            </p>
+            <div class="text-center py-5">
+                <h5 class="mb-2">
+                    Todavía no hay jugadores cargados
+                </h5>
+
+                <p class="text-muted mb-3">
+                    Agregá el primer jugador para empezar a cargar asistencias.
+                </p>
+
+                <a
+                    href="{% url 'crear_jugador' %}"
+                    class="btn btn-primary"
+                >
+                    + Agregar jugador
+                </a>
+            </div>
         {% endif %}
     </div>
 </div>
 
 {% endblock %}
-```

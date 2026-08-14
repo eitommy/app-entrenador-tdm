@@ -575,6 +575,122 @@ def dia_turno(request, fecha_str, turno):
         contexto,
     )
     
+
+@login_required
+@require_POST
+def copiar_jugadores_turno(request, fecha_str, turno):
+    try:
+        fecha = datetime.strptime(
+            fecha_str,
+            "%Y-%m-%d",
+        ).date()
+    except ValueError:
+        messages.error(
+            request,
+            "Fecha inválida.",
+        )
+        return redirect("inicio")
+
+    turno_origen = request.POST.get("turno_origen")
+
+    try:
+        turno_origen = int(turno_origen)
+    except (TypeError, ValueError):
+        messages.error(
+            request,
+            "Tenés que elegir un turno de origen válido.",
+        )
+        return redirect(
+            "dia_turno",
+            fecha_str=fecha_str,
+            turno=turno,
+        )
+
+    if turno_origen == turno:
+        messages.error(
+            request,
+            "No podés copiar jugadores desde el mismo turno.",
+        )
+        return redirect(
+            "dia_turno",
+            fecha_str=fecha_str,
+            turno=turno,
+        )
+
+    entrenamiento_destino = obtener_o_crear_entrenamiento(
+        fecha,
+        turno,
+    )
+
+    if turno_bloqueado(entrenamiento_destino):
+        return redirigir_turno_bloqueado(
+            request,
+            entrenamiento_destino,
+        )
+
+    entrenamiento_origen = Entrenamiento.objects.filter(
+        fecha=fecha,
+        turno=turno_origen,
+    ).first()
+
+    if not entrenamiento_origen:
+        messages.error(
+            request,
+            f"No existe el turno {turno_origen} para esa fecha.",
+        )
+        return redirect_dia_turno(
+            entrenamiento_destino,
+        )
+
+    asistencias_origen = Asistencia.objects.filter(
+        entrenamiento=entrenamiento_origen,
+    ).select_related(
+        "jugador",
+    )
+
+    total_origen = asistencias_origen.count()
+
+    if total_origen == 0:
+        messages.warning(
+            request,
+            f"El turno {turno_origen} no tiene jugadores cargados.",
+        )
+        return redirect_dia_turno(
+            entrenamiento_destino,
+        )
+
+    copiados = 0
+    repetidos = 0
+
+    for asistencia_origen in asistencias_origen:
+        _, creado = Asistencia.objects.get_or_create(
+            entrenamiento=entrenamiento_destino,
+            jugador=asistencia_origen.jugador,
+            defaults={
+                "estado": "pendiente",
+            },
+        )
+
+        if creado:
+            copiados += 1
+        else:
+            repetidos += 1
+
+    if copiados > 0:
+        messages.success(
+            request,
+            f"Se copiaron {copiados} jugador/es desde el turno {turno_origen}.",
+        )
+    else:
+        messages.info(
+            request,
+            f"No se copiaron jugadores nuevos. Ya estaban cargados los {repetidos} jugador/es.",
+        )
+
+    return redirect_dia_turno(
+        entrenamiento_destino,
+    )
+    
 @login_required
 def editar_trabajo_turno(request, trabajo_id):
     trabajo = get_object_or_404(
@@ -1568,15 +1684,102 @@ def guardar_motivo_ausencia(request, asistencia_id):
         )
 
     return redirect_dia_turno(
-        entrenamiento,
-        request.POST.get("volver_a", ""),
-    )
+    asistencia.entrenamiento,
+    request.POST.get("volver_a", ""),
+)
 
 
 @login_required
 def lista_jugadores(request):
-    jugadores = Jugador.objects.all()
-    return render(request, "asistencia/lista_jugadores.html", {"jugadores": jugadores})
+    hoy = timezone.localdate()
+    inicio_mes = hoy.replace(day=1)
+
+    jugadores = (
+        Jugador.objects
+        .all()
+        .order_by(
+            "apellido",
+            "nombre",
+        )
+    )
+
+    jugadores_info = []
+
+    for jugador in jugadores:
+        ultima_asistencia = (
+            Asistencia.objects
+            .filter(
+                jugador=jugador,
+                entrenamiento__no_se_entreno=False,
+            )
+            .select_related(
+                "entrenamiento",
+            )
+            .order_by(
+                "-entrenamiento__fecha",
+                "-entrenamiento__turno",
+            )
+            .first()
+        )
+
+        asistencias_mes = (
+            Asistencia.objects
+            .filter(
+                jugador=jugador,
+                entrenamiento__fecha__range=[
+                    inicio_mes,
+                    hoy,
+                ],
+                entrenamiento__no_se_entreno=False,
+            )
+        )
+
+        mes_total = asistencias_mes.count()
+
+        mes_presentes = asistencias_mes.filter(
+            Q(estado="asistio")
+            | Q(estado="tarde")
+        ).count()
+
+        mes_ausentes = asistencias_mes.filter(
+            estado="ausente"
+        ).count()
+
+        mes_porcentaje = (
+            round(
+                (
+                    mes_presentes
+                    / mes_total
+                ) * 100,
+                1,
+            )
+            if mes_total
+            else 0
+        )
+
+        jugadores_info.append({
+            "jugador": jugador,
+            "ultima_asistencia": ultima_asistencia,
+            "mes_total": mes_total,
+            "mes_presentes": mes_presentes,
+            "mes_ausentes": mes_ausentes,
+            "mes_porcentaje": mes_porcentaje,
+        })
+
+    contexto = {
+        "jugadores_info": jugadores_info,
+        "total_jugadores": jugadores.count(),
+        "jugadores_activos": jugadores.filter(activo=True).count(),
+        "jugadores_inactivos": jugadores.filter(activo=False).count(),
+        "hoy": hoy,
+        "inicio_mes": inicio_mes,
+    }
+
+    return render(
+        request,
+        "asistencia/lista_jugadores.html",
+        contexto,
+    )
 
 
 @login_required
@@ -2402,7 +2605,6 @@ def historial_jugador(request, jugador_id):
             "entrenamiento",
             "jugador_1",
             "jugador_2",
-            "ganador",
         )
         .prefetch_related("sets")
         .order_by(
@@ -2413,26 +2615,43 @@ def historial_jugador(request, jugador_id):
     )
 
     total_partidos = partidos.count()
+    total_partidos_ganados = 0
+    total_partidos_perdidos = 0
+    total_partidos_empatados = 0
 
-    total_partidos_ganados = partidos.filter(
-        ganador=jugador,
-    ).count()
+    for partido in partidos:
+        sets_jugador_1 = partido.sets_jugador_1
+        sets_jugador_2 = partido.sets_jugador_2
 
-    total_partidos_perdidos = partidos.exclude(
-        ganador__isnull=True,
-    ).exclude(
-        ganador=jugador,
-    ).count()
+        if sets_jugador_1 == sets_jugador_2:
+            total_partidos_empatados += 1
+            continue
+
+        if partido.jugador_1_id == jugador.id:
+            if sets_jugador_1 > sets_jugador_2:
+                total_partidos_ganados += 1
+            else:
+                total_partidos_perdidos += 1
+        else:
+            if sets_jugador_2 > sets_jugador_1:
+                total_partidos_ganados += 1
+            else:
+                total_partidos_perdidos += 1
+
+    partidos_definidos = (
+        total_partidos_ganados
+        + total_partidos_perdidos
+    )
 
     porcentaje_victorias = (
         round(
             (
                 total_partidos_ganados
-                / total_partidos
+                / partidos_definidos
             ) * 100,
             1,
         )
-        if total_partidos
+        if partidos_definidos
         else 0
     )
 
@@ -2513,6 +2732,7 @@ def historial_jugador(request, jugador_id):
         "total_partidos": total_partidos,
         "total_partidos_ganados": total_partidos_ganados,
         "total_partidos_perdidos": total_partidos_perdidos,
+        "total_partidos_empatados": total_partidos_empatados,
         "porcentaje_victorias": porcentaje_victorias,
 
         "total_trabajos": trabajos.count(),
@@ -2544,6 +2764,7 @@ def historial_jugador(request, jugador_id):
         "total_partidos": total_partidos,
         "total_partidos_ganados": total_partidos_ganados,
         "total_partidos_perdidos": total_partidos_perdidos,
+        "total_partidos_empatados": total_partidos_empatados,
     }
 
     return render(
@@ -2556,15 +2777,56 @@ def historial_jugador(request, jugador_id):
 @login_required
 def reportes(request):
     hoy = timezone.localdate()
-    inicio_semana = hoy - timedelta(days=hoy.weekday())
-    inicio_mes = hoy.replace(day=1)
+    fecha_str = request.GET.get("fecha")
+
+    if fecha_str:
+        try:
+            fecha_base = datetime.strptime(
+                fecha_str,
+                "%Y-%m-%d",
+            ).date()
+        except ValueError:
+            fecha_base = hoy
+    else:
+        fecha_base = hoy
+
+    inicio_semana = fecha_base - timedelta(
+        days=fecha_base.weekday()
+    )
+
+    fin_semana = inicio_semana + timedelta(days=4)
+
+    if fin_semana > hoy:
+        fin_semana = hoy
+
+    inicio_mes = fecha_base.replace(day=1)
+
+    if inicio_mes.month == 12:
+        inicio_mes_siguiente = inicio_mes.replace(
+            year=inicio_mes.year + 1,
+            month=1,
+        )
+    else:
+        inicio_mes_siguiente = inicio_mes.replace(
+            month=inicio_mes.month + 1,
+        )
+
+    fin_mes = inicio_mes_siguiente - timedelta(days=1)
+
+    if fin_mes > hoy:
+        fin_mes = hoy
+
+    semana_anterior = inicio_semana - timedelta(days=7)
+    semana_siguiente = inicio_semana + timedelta(days=7)
+    mes_anterior = inicio_mes - timedelta(days=1)
+    mes_siguiente = inicio_mes_siguiente
 
     turnos_no_entrenados_semana = (
         Entrenamiento.objects
         .filter(
             fecha__range=[
                 inicio_semana,
-                hoy,
+                fin_semana,
             ],
             no_se_entreno=True,
         )
@@ -2579,7 +2841,7 @@ def reportes(request):
         .filter(
             fecha__range=[
                 inicio_mes,
-                hoy,
+                fin_mes,
             ],
             no_se_entreno=True,
         )
@@ -2648,14 +2910,21 @@ def reportes(request):
     total_mes_presentes = 0
     total_mes_ausentes = 0
 
-    for jugador in Jugador.objects.filter(activo=True).order_by("apellido", "nombre"):
+    for jugador in (
+        Jugador.objects
+        .filter(activo=True)
+        .order_by(
+            "apellido",
+            "nombre",
+        )
+    ):
         total_jugadores += 1
 
         asistencias_semana = Asistencia.objects.filter(
             jugador=jugador,
             entrenamiento__fecha__range=[
                 inicio_semana,
-                hoy,
+                fin_semana,
             ],
             entrenamiento__no_se_entreno=False,
         )
@@ -2664,7 +2933,7 @@ def reportes(request):
             jugador=jugador,
             entrenamiento__fecha__range=[
                 inicio_mes,
-                hoy,
+                fin_mes,
             ],
             entrenamiento__no_se_entreno=False,
         )
@@ -2828,8 +3097,12 @@ def reportes(request):
         "total_mes_ausentes": total_mes_ausentes,
         "dias_no_entrenados_semana": dias_no_entrenados_semana,
         "dias_no_entrenados_mes": dias_no_entrenados_mes,
-        "total_turnos_no_entrenados_semana": total_turnos_no_entrenados_semana,
-        "total_turnos_no_entrenados_mes": total_turnos_no_entrenados_mes,
+        "total_turnos_no_entrenados_semana": (
+            total_turnos_no_entrenados_semana
+        ),
+        "total_turnos_no_entrenados_mes": (
+            total_turnos_no_entrenados_mes
+        ),
     }
 
     return render(
@@ -2838,15 +3111,22 @@ def reportes(request):
         {
             "datos": datos,
             "hoy": hoy,
+            "fecha_base": fecha_base,
             "inicio_semana": inicio_semana,
+            "fin_semana": fin_semana,
             "inicio_mes": inicio_mes,
+            "fin_mes": fin_mes,
+            "semana_anterior": semana_anterior,
+            "semana_siguiente": semana_siguiente,
+            "mes_anterior": mes_anterior,
+            "mes_siguiente": mes_siguiente,
             "resumen_general": resumen_general,
             "turnos_no_entrenados_semana": turnos_no_entrenados_semana,
             "turnos_no_entrenados_mes": turnos_no_entrenados_mes,
             "motivos_no_entrenamiento": motivos_no_entrenamiento,
         },
     )
-
+    
 @login_required
 def exportar_reporte_mensual(request):
     hoy = timezone.localdate()
@@ -3446,32 +3726,390 @@ def exportar_reporte_mensual(request):
 @login_required
 def dashboard_mensual(request):
     hoy = timezone.localdate()
+    fecha_str = request.GET.get("fecha")
+
+    if fecha_str:
+        try:
+            fecha_base = datetime.strptime(
+                fecha_str,
+                "%Y-%m-%d",
+            ).date()
+        except ValueError:
+            fecha_base = hoy
+    else:
+        fecha_base = hoy
+
+    inicio_mes = fecha_base.replace(day=1)
+
+    if inicio_mes.month == 12:
+        inicio_mes_siguiente = inicio_mes.replace(
+            year=inicio_mes.year + 1,
+            month=1,
+        )
+    else:
+        inicio_mes_siguiente = inicio_mes.replace(
+            month=inicio_mes.month + 1,
+        )
+
+    fin_mes = inicio_mes_siguiente - timedelta(days=1)
+
+    if fin_mes > hoy:
+        fin_mes = hoy
+
+    mes_anterior = inicio_mes - timedelta(days=1)
+    mes_siguiente = inicio_mes_siguiente
+
+    asistencias_mes = (
+        Asistencia.objects
+        .filter(
+            entrenamiento__fecha__range=[
+                inicio_mes,
+                fin_mes,
+            ],
+            entrenamiento__no_se_entreno=False,
+        )
+        .select_related(
+            "jugador",
+            "entrenamiento",
+        )
+    )
+
+    entrenamientos_mes = Entrenamiento.objects.filter(
+        fecha__range=[
+            inicio_mes,
+            fin_mes,
+        ],
+    )
+
+    turnos_no_entrenados = (
+        entrenamientos_mes
+        .filter(no_se_entreno=True)
+        .order_by(
+            "-fecha",
+            "turno",
+        )
+    )
+
+    motivos_no_entrenamiento = (
+        turnos_no_entrenados
+        .values("motivo_no_entrenamiento")
+        .annotate(total=Count("id"))
+        .order_by("-total")
+    )
+
+    opciones_motivos = dict(
+        Entrenamiento.MotivoNoEntrenamiento.choices
+    )
+
+    motivos = []
+
+    for item in motivos_no_entrenamiento:
+        codigo = item["motivo_no_entrenamiento"]
+
+        motivos.append({
+            "motivo": opciones_motivos.get(
+                codigo,
+                codigo or "Sin motivo",
+            ),
+            "total": item["total"],
+        })
+
+    ids_con_asistencia = set(
+        Asistencia.objects
+        .filter(
+            entrenamiento__fecha__range=[
+                inicio_mes,
+                fin_mes,
+            ],
+        )
+        .values_list(
+            "entrenamiento_id",
+            flat=True,
+        )
+    )
+
+    ids_con_trabajos = set(
+        TrabajoTurno.objects
+        .filter(
+            entrenamiento__fecha__range=[
+                inicio_mes,
+                fin_mes,
+            ],
+        )
+        .values_list(
+            "entrenamiento_id",
+            flat=True,
+        )
+    )
+
+    ids_con_partidos = set(
+        PartidoTurno.objects
+        .filter(
+            entrenamiento__fecha__range=[
+                inicio_mes,
+                fin_mes,
+            ],
+        )
+        .values_list(
+            "entrenamiento_id",
+            flat=True,
+        )
+    )
+
+    ids_con_ejercicios = set(
+        EjercicioTurno.objects
+        .filter(
+            entrenamiento__fecha__range=[
+                inicio_mes,
+                fin_mes,
+            ],
+        )
+        .values_list(
+            "entrenamiento_id",
+            flat=True,
+        )
+    )
+
+    ids_turnos_con_actividad = (
+        ids_con_asistencia
+        | ids_con_trabajos
+        | ids_con_partidos
+        | ids_con_ejercicios
+    )
+
+    turnos_realizados = (
+        Entrenamiento.objects
+        .filter(
+            id__in=ids_turnos_con_actividad,
+            no_se_entreno=False,
+        )
+        .count()
+    )
+
+    jugadores_datos = []
+
+    for jugador in (
+        Jugador.objects
+        .filter(activo=True)
+        .order_by(
+            "apellido",
+            "nombre",
+        )
+    ):
+        asistencias_jugador = asistencias_mes.filter(
+            jugador=jugador,
+        )
+
+        total = asistencias_jugador.count()
+
+        presentes = asistencias_jugador.filter(
+            Q(estado="asistio")
+            | Q(estado="tarde")
+        ).count()
+
+        tardes = asistencias_jugador.filter(
+            estado="tarde",
+        ).count()
+
+        ausentes = asistencias_jugador.filter(
+            estado="ausente",
+        ).count()
+
+        pendientes = asistencias_jugador.filter(
+            estado="pendiente",
+        ).count()
+
+        porcentaje = (
+            round(
+                (presentes / total) * 100,
+                1,
+            )
+            if total
+            else 0
+        )
+
+        partidos_jugador = (
+            PartidoTurno.objects
+            .filter(
+                entrenamiento__fecha__range=[
+                    inicio_mes,
+                    fin_mes,
+                ],
+            )
+            .filter(
+                Q(jugador_1=jugador)
+                | Q(jugador_2=jugador)
+            )
+            .select_related(
+                "jugador_1",
+                "jugador_2",
+                "entrenamiento",
+            )
+            .prefetch_related("sets")
+        )
+
+        partidos = partidos_jugador.count()
+        victorias = 0
+        derrotas = 0
+
+        for partido in partidos_jugador:
+            sets_jugador_1 = partido.sets_jugador_1
+            sets_jugador_2 = partido.sets_jugador_2
+
+            if sets_jugador_1 == sets_jugador_2:
+                continue
+
+            if partido.jugador_1_id == jugador.id:
+                if sets_jugador_1 > sets_jugador_2:
+                    victorias += 1
+                else:
+                    derrotas += 1
+            else:
+                if sets_jugador_2 > sets_jugador_1:
+                    victorias += 1
+                else:
+                    derrotas += 1
+
+        trabajos = (
+            TrabajoTurno.objects
+            .filter(
+                entrenamiento__fecha__range=[
+                    inicio_mes,
+                    fin_mes,
+                ],
+            )
+            .filter(
+                Q(jugador_1=jugador)
+                | Q(jugador_2=jugador)
+            )
+            .count()
+        )
+
+        observaciones = (
+            ObservacionJugador.objects
+            .filter(
+                jugador=jugador,
+                entrenamiento__fecha__range=[
+                    inicio_mes,
+                    fin_mes,
+                ],
+            )
+            .count()
+        )
+
+        jugadores_datos.append({
+            "jugador": jugador,
+            "total": total,
+            "presentes": presentes,
+            "tardes": tardes,
+            "ausentes": ausentes,
+            "pendientes": pendientes,
+            "porcentaje": porcentaje,
+            "partidos": partidos,
+            "victorias": victorias,
+            "derrotas": derrotas,
+            "trabajos": trabajos,
+            "observaciones": observaciones,
+        })
+
+    ranking_asistencia = sorted(
+        jugadores_datos,
+        key=lambda item: (
+            item["porcentaje"],
+            item["presentes"],
+        ),
+        reverse=True,
+    )
+
+    ranking_ausencias = sorted(
+        jugadores_datos,
+        key=lambda item: item["ausentes"],
+        reverse=True,
+    )
+
+    ranking_partidos = sorted(
+        jugadores_datos,
+        key=lambda item: item["partidos"],
+        reverse=True,
+    )
+
+    mejor_asistencia = (
+        ranking_asistencia[0]
+        if ranking_asistencia
+        and ranking_asistencia[0]["total"] > 0
+        else None
+    )
+
+    mas_ausencias = (
+        ranking_ausencias[0]
+        if ranking_ausencias
+        and ranking_ausencias[0]["ausentes"] > 0
+        else None
+    )
+
+    mas_partidos = (
+        ranking_partidos[0]
+        if ranking_partidos
+        and ranking_partidos[0]["partidos"] > 0
+        else None
+    )
+
+    total_presentes = sum(
+        item["presentes"]
+        for item in jugadores_datos
+    )
+
+    total_ausentes = sum(
+        item["ausentes"]
+        for item in jugadores_datos
+    )
+
+    total_tardes = sum(
+        item["tardes"]
+        for item in jugadores_datos
+    )
+
+    total_partidos = sum(
+        item["partidos"]
+        for item in jugadores_datos
+    )
+
+    resumen = {
+        "jugadores_activos": len(jugadores_datos),
+        "turnos_realizados": turnos_realizados,
+        "turnos_no_entrenados": turnos_no_entrenados.count(),
+        "dias_no_entrenados": (
+            turnos_no_entrenados
+            .values("fecha")
+            .distinct()
+            .count()
+        ),
+        "total_presentes": total_presentes,
+        "total_ausentes": total_ausentes,
+        "total_tardes": total_tardes,
+        "total_partidos": total_partidos,
+        "motivo_principal": (
+            motivos[0]["motivo"]
+            if motivos
+            else "-"
+        ),
+    }
 
     contexto = {
-        "fecha_base": hoy,
-        "inicio_mes": hoy.replace(day=1),
-        "fin_mes": hoy,
-        "mes_anterior": hoy,
-        "mes_siguiente": hoy,
-        "resumen": {
-            "jugadores_activos": Jugador.objects.filter(activo=True).count(),
-            "turnos_realizados": 0,
-            "turnos_no_entrenados": 0,
-            "dias_no_entrenados": 0,
-            "total_presentes": 0,
-            "total_ausentes": 0,
-            "total_tardes": 0,
-            "total_partidos": 0,
-            "motivo_principal": "-",
-        },
-        "motivos": [],
-        "turnos_no_entrenados": [],
-        "ranking_asistencia": [],
-        "ranking_ausencias": [],
-        "ranking_partidos": [],
-        "mejor_asistencia": None,
-        "mas_ausencias": None,
-        "mas_partidos": None,
+        "fecha_base": fecha_base,
+        "inicio_mes": inicio_mes,
+        "fin_mes": fin_mes,
+        "mes_anterior": mes_anterior,
+        "mes_siguiente": mes_siguiente,
+        "resumen": resumen,
+        "motivos": motivos,
+        "turnos_no_entrenados": turnos_no_entrenados[:12],
+        "ranking_asistencia": ranking_asistencia[:10],
+        "ranking_ausencias": ranking_ausencias[:10],
+        "ranking_partidos": ranking_partidos[:10],
+        "mejor_asistencia": mejor_asistencia,
+        "mas_ausencias": mas_ausencias,
+        "mas_partidos": mas_partidos,
     }
 
     return render(
