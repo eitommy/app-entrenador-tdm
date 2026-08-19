@@ -333,9 +333,33 @@
                                     </button>
                                 </div>
 
-                                <div class="row g-2">
+                                <div class="mb-3">
+                                    <label class="form-label small text-muted mb-1">
+                                        Buscar jugador
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        class="form-control"
+                                        id="buscar-jugador-turno"
+                                        placeholder="Ejemplo: eit, mart, ale..."
+                                        autocomplete="off"
+                                    >
+
+                                    <div class="small text-muted mt-1">
+                                        Escribí parte del nombre o apellido para filtrar la lista.
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="row g-2"
+                                    id="lista-jugadores-disponibles"
+                                >
                                     {% for jugador in jugadores_disponibles %}
-                                        <div class="col-md-6">
+                                        <div
+                                            class="col-md-6 jugador-disponible-item"
+                                            data-nombre="{{ jugador|lower }}"
+                                        >
                                             <label class="border rounded-3 p-2 bg-white w-100 d-flex align-items-center gap-2">
                                                 <input
                                                     type="checkbox"
@@ -347,6 +371,13 @@
                                             </label>
                                         </div>
                                     {% endfor %}
+                                </div>
+
+                                <div
+                                    class="text-muted small mt-3 d-none"
+                                    id="sin-resultados-jugadores"
+                                >
+                                    No hay jugadores que coincidan con esa búsqueda.
                                 </div>
                             </div>
 
@@ -1339,7 +1370,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    const tipoTrabajo = document.getElementById("id_tipo_trabajo");
+    const tipoTrabajo =
+        document.getElementById("id_tipo")
+        || document.getElementById("id_tipo_trabajo");
+
     const cambioInput = document.getElementById("id_cambio");
     const jugador1 = document.getElementById("id_jugador_1");
     const jugador2 = document.getElementById("id_jugador_2");
@@ -1375,9 +1409,11 @@ document.addEventListener("DOMContentLoaded", function () {
             jugador2.required = false;
             jugador2.value = "";
         }
+
+        actualizarOpcionesJugadores();
     }
 
-    function restaurarOpciones(select) {
+    function limpiarOpciones(select) {
         if (!select) {
             return;
         }
@@ -1388,83 +1424,74 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function ocultarJugadoresOcupados() {
+    function bloquearJugadorEnSelect(select, jugadorId) {
+        if (!select || !jugadorId) {
+            return;
+        }
+
+        Array.from(select.options).forEach(function (opcion) {
+            if (
+                opcion.value
+                && Number(opcion.value) === Number(jugadorId)
+            ) {
+                opcion.hidden = true;
+                opcion.disabled = true;
+            }
+        });
+    }
+
+    function actualizarOpcionesJugadores() {
         if (!cambioInput || !jugador1 || !jugador2) {
             return;
         }
 
-        restaurarOpciones(jugador1);
-        restaurarOpciones(jugador2);
+        limpiarOpciones(jugador1);
+        limpiarOpciones(jugador2);
 
         const cambioActual = String(cambioInput.value);
         const idsOcupados = jugadoresOcupados[cambioActual] || [];
 
-        const jugador1Seleccionado = Number(jugador1.value);
-        const jugador2Seleccionado = Number(jugador2.value);
+        const jugador1Seleccionado = jugador1.value;
+        const jugador2Seleccionado = jugador2.value;
 
-        if (idsOcupados.includes(jugador1Seleccionado)) {
+        /*
+            Si el jugador ya está usado en ese cambio,
+            se limpia la selección para que no quede elegido.
+        */
+        if (
+            jugador1Seleccionado
+            && idsOcupados.includes(Number(jugador1Seleccionado))
+        ) {
             jugador1.value = "";
         }
 
-        if (idsOcupados.includes(jugador2Seleccionado)) {
+        if (
+            jugador2Seleccionado
+            && idsOcupados.includes(Number(jugador2Seleccionado))
+        ) {
             jugador2.value = "";
         }
 
-        Array.from(jugador1.options).forEach(function (opcion) {
-            const jugadorId = Number(opcion.value);
-
-            if (
-                opcion.value &&
-                idsOcupados.includes(jugadorId)
-            ) {
-                opcion.hidden = true;
-                opcion.disabled = true;
-            }
+        /*
+            Oculta de las dos listas a todos los jugadores
+            que ya fueron cargados en el cambio actual.
+        */
+        idsOcupados.forEach(function (jugadorId) {
+            bloquearJugadorEnSelect(jugador1, jugadorId);
+            bloquearJugadorEnSelect(jugador2, jugadorId);
         });
 
-        Array.from(jugador2.options).forEach(function (opcion) {
-            const jugadorId = Number(opcion.value);
-
-            if (
-                opcion.value &&
-                idsOcupados.includes(jugadorId)
-            ) {
-                opcion.hidden = true;
-                opcion.disabled = true;
-            }
-        });
-
-        evitarMismoJugador();
-    }
-
-    function evitarMismoJugador() {
-        if (!jugador1 || !jugador2) {
-            return;
+        /*
+            Evita elegir al mismo jugador como jugador y compañero.
+            Esto se aplica después de ocultar ocupados, sin restaurar opciones.
+        */
+        if (jugador1.value) {
+            bloquearJugadorEnSelect(jugador2, jugador1.value);
         }
 
-        const valorJugador1 = jugador1.value;
-        const valorJugador2 = jugador2.value;
-
-        restaurarOpciones(jugador1);
-        restaurarOpciones(jugador2);
-
-        Array.from(jugador1.options).forEach(function (opcion) {
-            if (
-                opcion.value &&
-                opcion.value === valorJugador2
-            ) {
-                opcion.disabled = true;
-            }
-        });
-
-        Array.from(jugador2.options).forEach(function (opcion) {
-            if (
-                opcion.value &&
-                opcion.value === valorJugador1
-            ) {
-                opcion.disabled = true;
-            }
-        });
+        if (jugador2.value) {
+            bloquearJugadorEnSelect(jugador1, jugador2.value);
+        }
     }
 
     if (tipoTrabajo) {
@@ -1477,31 +1504,31 @@ document.addEventListener("DOMContentLoaded", function () {
     if (cambioInput) {
         cambioInput.addEventListener(
             "input",
-            ocultarJugadoresOcupados
+            actualizarOpcionesJugadores
         );
 
         cambioInput.addEventListener(
             "change",
-            ocultarJugadoresOcupados
+            actualizarOpcionesJugadores
         );
     }
 
     if (jugador1) {
         jugador1.addEventListener(
             "change",
-            ocultarJugadoresOcupados
+            actualizarOpcionesJugadores
         );
     }
 
     if (jugador2) {
         jugador2.addEventListener(
             "change",
-            ocultarJugadoresOcupados
+            actualizarOpcionesJugadores
         );
     }
 
     actualizarJugador2();
-    ocultarJugadoresOcupados();
+    actualizarOpcionesJugadores();
 });
 </script>
 
@@ -1512,29 +1539,133 @@ document.addEventListener("DOMContentLoaded", function () {
         "seleccionar-todos-jugadores"
     );
 
-    const checkboxesJugadores = document.querySelectorAll(
-        ".jugador-checkbox"
+    const buscadorJugadores = document.getElementById(
+        "buscar-jugador-turno"
     );
 
-    if (!botonSeleccionarTodos || !checkboxesJugadores.length) {
-        return;
+    const itemsJugadores = document.querySelectorAll(
+        ".jugador-disponible-item"
+    );
+
+    const mensajeSinResultados = document.getElementById(
+        "sin-resultados-jugadores"
+    );
+
+    function normalizarTexto(texto) {
+        return texto
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
     }
 
-    botonSeleccionarTodos.addEventListener("click", function () {
-        const todosSeleccionados = Array.from(
-            checkboxesJugadores
-        ).every(function (checkbox) {
+    function checkboxesVisibles() {
+        return Array.from(
+            document.querySelectorAll(".jugador-disponible-item")
+        )
+        .filter(function (item) {
+            return item.style.display !== "none";
+        })
+        .map(function (item) {
+            return item.querySelector(".jugador-checkbox");
+        })
+        .filter(Boolean);
+    }
+
+    function actualizarTextoBotonSeleccionar() {
+        if (!botonSeleccionarTodos) {
+            return;
+        }
+
+        const visibles = checkboxesVisibles();
+
+        if (!visibles.length) {
+            botonSeleccionarTodos.textContent = "Seleccionar todos";
+            botonSeleccionarTodos.disabled = true;
+            return;
+        }
+
+        botonSeleccionarTodos.disabled = false;
+
+        const todosSeleccionados = visibles.every(function (checkbox) {
             return checkbox.checked;
         });
 
-        checkboxesJugadores.forEach(function (checkbox) {
-            checkbox.checked = !todosSeleccionados;
+        botonSeleccionarTodos.textContent = todosSeleccionados
+            ? "Quitar selección"
+            : "Seleccionar todos";
+    }
+
+    function filtrarJugadoresDisponibles() {
+        if (!buscadorJugadores || !itemsJugadores.length) {
+            return;
+        }
+
+        const busqueda = normalizarTexto(buscadorJugadores.value);
+        let cantidadVisible = 0;
+
+        itemsJugadores.forEach(function (item) {
+            const nombre = normalizarTexto(
+                item.dataset.nombre || item.textContent
+            );
+
+            const coincide = (
+                busqueda === ""
+                || nombre.includes(busqueda)
+            );
+
+            item.style.display = coincide ? "" : "none";
+
+            if (coincide) {
+                cantidadVisible += 1;
+            }
         });
 
-        botonSeleccionarTodos.textContent = todosSeleccionados
-            ? "Seleccionar todos"
-            : "Quitar selección";
+        if (mensajeSinResultados) {
+            mensajeSinResultados.classList.toggle(
+                "d-none",
+                cantidadVisible > 0
+            );
+        }
+
+        actualizarTextoBotonSeleccionar();
+    }
+
+    if (buscadorJugadores) {
+        buscadorJugadores.addEventListener(
+            "input",
+            filtrarJugadoresDisponibles
+        );
+    }
+
+    if (botonSeleccionarTodos) {
+        botonSeleccionarTodos.addEventListener("click", function () {
+            const visibles = checkboxesVisibles();
+
+            if (!visibles.length) {
+                return;
+            }
+
+            const todosSeleccionados = visibles.every(function (checkbox) {
+                return checkbox.checked;
+            });
+
+            visibles.forEach(function (checkbox) {
+                checkbox.checked = !todosSeleccionados;
+            });
+
+            actualizarTextoBotonSeleccionar();
+        });
+    }
+
+    document.querySelectorAll(".jugador-checkbox").forEach(function (checkbox) {
+        checkbox.addEventListener(
+            "change",
+            actualizarTextoBotonSeleccionar
+        );
     });
+
+    filtrarJugadoresDisponibles();
 });
 </script>
 
