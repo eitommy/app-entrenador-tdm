@@ -101,6 +101,23 @@
         </div>
 
         {% if jugadores_info %}
+            <div class="mb-3">
+                <label class="form-label small text-muted mb-1">
+                    Buscar jugador
+                </label>
+
+                <input
+                    type="text"
+                    id="buscar-jugador-listado"
+                    class="form-control"
+                    placeholder="Ejemplo: eit, mart, ale..."
+                    autocomplete="off"
+                >
+
+                <div class="small text-muted mt-1">
+                    Escribí parte del nombre o apellido para encontrarlo rápido.
+                </div>
+            </div>
             <div class="table-responsive">
                 <table class="table align-middle mb-0">
                     <thead>
@@ -118,7 +135,10 @@
 
                     <tbody>
                         {% for item in jugadores_info %}
-                            <tr>
+                            <tr
+                                class="fila-jugador"
+                                data-nombre="{{ item.jugador|lower }}"
+                            >
                                 <td>
                                     <div class="fw-bold">
                                         {{ item.jugador }}
@@ -229,6 +249,13 @@
                     </tbody>
                 </table>
             </div>
+
+            <div
+                id="sin-resultados-listado"
+                class="text-center text-muted py-4 d-none"
+            >
+                No hay jugadores que coincidan con esa búsqueda.
+            </div>
         {% else %}
             <div class="text-center py-5">
                 <h5 class="mb-2">
@@ -249,5 +276,62 @@
         {% endif %}
     </div>
 </div>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const buscador = document.getElementById("buscar-jugador-listado");
+    const filas = document.querySelectorAll(".fila-jugador");
+    const mensajeSinResultados = document.getElementById(
+        "sin-resultados-listado"
+    );
+
+    function normalizarTexto(texto) {
+        return texto
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+    }
+
+    function filtrarJugadores() {
+        if (!buscador || !filas.length) {
+            return;
+        }
+
+        const busqueda = normalizarTexto(buscador.value);
+        let visibles = 0;
+
+        filas.forEach(function (fila) {
+            const nombre = normalizarTexto(
+                fila.dataset.nombre || fila.textContent
+            );
+
+            const coincide = (
+                busqueda === ""
+                || nombre.includes(busqueda)
+            );
+
+            fila.style.display = coincide ? "" : "none";
+
+            if (coincide) {
+                visibles += 1;
+            }
+        });
+
+        if (mensajeSinResultados) {
+            mensajeSinResultados.classList.toggle(
+                "d-none",
+                visibles > 0
+            );
+        }
+    }
+
+    if (buscador) {
+        buscador.addEventListener("input", filtrarJugadores);
+        filtrarJugadores();
+    }
+});
+</script>
 
 {% endblock %}

@@ -2,69 +2,111 @@
 
 {% block content %}
 
-<div class="login-page d-flex justify-content-center align-items-center">
-    <div class="login-card shadow-sm">
-        <div class="text-center mb-4">
-            <h1 class="login-title mb-1">
-                🏓 TDM Coach
-            </h1>
+<div class="row justify-content-center">
+    <div class="col-lg-5 col-md-7">
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <h1 class="h3 mb-1">
+                        TDM Coach
+                    </h1>
 
-            <p class="text-muted mb-0">
-                Acceso al sistema de entrenamiento
-            </p>
+                    <p class="text-muted mb-0">
+                        Acceso al sistema de entrenamiento
+                    </p>
+                </div>
+
+                {% if form.errors %}
+                    <div class="alert alert-danger">
+                        Usuario o contraseña incorrectos.
+                    </div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label
+                            for="{{ form.username.id_for_label }}"
+                            class="form-label"
+                        >
+                            Usuario
+                        </label>
+
+                        <input
+                            type="text"
+                            name="{{ form.username.html_name }}"
+                            id="{{ form.username.id_for_label }}"
+                            class="form-control"
+                            autocomplete="username"
+                            required
+                        >
+                    </div>
+
+                    <div class="mb-3">
+                        <label
+                            for="{{ form.password.id_for_label }}"
+                            class="form-label"
+                        >
+                            Contraseña
+                        </label>
+
+                        <div class="input-group">
+                            <input
+                                type="password"
+                                name="{{ form.password.html_name }}"
+                                id="{{ form.password.id_for_label }}"
+                                class="form-control"
+                                autocomplete="current-password"
+                                required
+                            >
+
+                            <button
+                                type="button"
+                                class="btn btn-outline-secondary"
+                                id="toggle-password"
+                                aria-label="Mostrar u ocultar contraseña"
+                            >
+                                Ver
+                            </button>
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary w-100"
+                    >
+                        Ingresar al sistema
+                    </button>
+                </form>
+
+                <p class="text-muted small text-center mb-0 mt-3">
+                    El entrenador responsable se selecciona dentro de cada turno.
+                </p>
+            </div>
         </div>
-
-        {% if form.errors %}
-            <div class="alert alert-danger py-2">
-                Usuario o contraseña incorrectos.
-            </div>
-        {% endif %}
-
-        <form method="post">
-            {% csrf_token %}
-
-            <div class="mb-3">
-                <label for="id_username" class="form-label">
-                    Usuario
-                </label>
-
-                <input
-                    type="text"
-                    name="username"
-                    autofocus
-                    autocapitalize="none"
-                    autocomplete="username"
-                    maxlength="150"
-                    required
-                    id="id_username"
-                    class="form-control"
-                >
-            </div>
-
-            <div class="mb-3">
-                <label for="id_password" class="form-label">
-                    Contraseña
-                </label>
-
-                <input
-                    type="password"
-                    name="password"
-                    autocomplete="current-password"
-                    required
-                    id="id_password"
-                    class="form-control"
-                >
-            </div>
-
-            <button type="submit" class="btn btn-dark w-100">
-                Ingresar al sistema
-            </button>
-        </form>
-
-        <p class="text-muted small text-center mt-3 mb-0">
-            El entrenador responsable se selecciona dentro de cada turno.
-        </p>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const passwordInput = document.getElementById(
+        "{{ form.password.id_for_label }}"
+    );
+
+    const toggleButton = document.getElementById("toggle-password");
+
+    if (!passwordInput || !toggleButton) {
+        return;
+    }
+
+    toggleButton.addEventListener("click", function () {
+        const estaOculta = passwordInput.type === "password";
+
+        passwordInput.type = estaOculta ? "text" : "password";
+        toggleButton.textContent = estaOculta ? "Ocultar" : "Ver";
+    });
+});
+</script>
 
 {% endblock %}
