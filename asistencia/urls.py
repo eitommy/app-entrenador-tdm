@@ -202,4 +202,6 @@ urlpatterns = [
         views.dashboard_mensual,
         name="dashboard_mensual",
     ),
+    
+    path("resumen-dia/", views.resumen_dia, name="resumen_dia"),
 ]

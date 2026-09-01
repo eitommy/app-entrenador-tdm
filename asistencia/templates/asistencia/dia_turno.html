@@ -1374,44 +1374,12 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("id_tipo")
         || document.getElementById("id_tipo_trabajo");
 
-    const cambioInput = document.getElementById("id_cambio");
     const jugador1 = document.getElementById("id_jugador_1");
     const jugador2 = document.getElementById("id_jugador_2");
 
     const contenedorJugador2 = document.getElementById(
         "contenedor-jugador-2"
     );
-
-    const datosOcupadosElemento = document.getElementById(
-        "jugadores-ocupados-data"
-    );
-
-    let jugadoresOcupados = {};
-
-    if (datosOcupadosElemento) {
-        jugadoresOcupados = JSON.parse(
-            datosOcupadosElemento.textContent
-        );
-    }
-
-    function actualizarJugador2() {
-        if (!tipoTrabajo || !contenedorJugador2 || !jugador2) {
-            return;
-        }
-
-        const esPareja = tipoTrabajo.value === "pareja";
-
-        if (esPareja) {
-            contenedorJugador2.style.display = "block";
-            jugador2.required = true;
-        } else {
-            contenedorJugador2.style.display = "none";
-            jugador2.required = false;
-            jugador2.value = "";
-        }
-
-        actualizarOpcionesJugadores();
-    }
 
     function limpiarOpciones(select) {
         if (!select) {
@@ -1440,50 +1408,36 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    function actualizarJugador2() {
+        if (!tipoTrabajo || !contenedorJugador2 || !jugador2) {
+            return;
+        }
+
+        const esPareja = tipoTrabajo.value === "pareja";
+
+        if (esPareja) {
+            contenedorJugador2.style.display = "block";
+            jugador2.required = true;
+        } else {
+            contenedorJugador2.style.display = "none";
+            jugador2.required = false;
+            jugador2.value = "";
+        }
+
+        actualizarOpcionesJugadores();
+    }
+
     function actualizarOpcionesJugadores() {
-        if (!cambioInput || !jugador1 || !jugador2) {
+        if (!jugador1 || !jugador2) {
             return;
         }
 
         limpiarOpciones(jugador1);
         limpiarOpciones(jugador2);
 
-        const cambioActual = String(cambioInput.value);
-        const idsOcupados = jugadoresOcupados[cambioActual] || [];
-
-        const jugador1Seleccionado = jugador1.value;
-        const jugador2Seleccionado = jugador2.value;
-
         /*
-            Si el jugador ya está usado en ese cambio,
-            se limpia la selección para que no quede elegido.
-        */
-        if (
-            jugador1Seleccionado
-            && idsOcupados.includes(Number(jugador1Seleccionado))
-        ) {
-            jugador1.value = "";
-        }
-
-        if (
-            jugador2Seleccionado
-            && idsOcupados.includes(Number(jugador2Seleccionado))
-        ) {
-            jugador2.value = "";
-        }
-
-        /*
-            Oculta de las dos listas a todos los jugadores
-            que ya fueron cargados en el cambio actual.
-        */
-        idsOcupados.forEach(function (jugadorId) {
-            bloquearJugadorEnSelect(jugador1, jugadorId);
-            bloquearJugadorEnSelect(jugador2, jugadorId);
-        });
-
-        /*
-            Evita elegir al mismo jugador como jugador y compañero.
-            Esto se aplica después de ocultar ocupados, sin restaurar opciones.
+            Ahora se permite repetir parejas/trabajos en el mismo cambio.
+            Lo único que se evita es cargar al mismo jugador contra sí mismo.
         */
         if (jugador1.value) {
             bloquearJugadorEnSelect(jugador2, jugador1.value);
@@ -1498,18 +1452,6 @@ document.addEventListener("DOMContentLoaded", function () {
         tipoTrabajo.addEventListener(
             "change",
             actualizarJugador2
-        );
-    }
-
-    if (cambioInput) {
-        cambioInput.addEventListener(
-            "input",
-            actualizarOpcionesJugadores
-        );
-
-        cambioInput.addEventListener(
-            "change",
-            actualizarOpcionesJugadores
         );
     }
 

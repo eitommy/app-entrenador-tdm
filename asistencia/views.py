@@ -356,16 +356,28 @@ def dia_turno(request, fecha_str, turno):
                     trabajo.jugador_2_id
                 )
 
-        jugadores_pendientes = [
-            asistencia.jugador
-            for asistencia in asistencias
-            if asistencia.jugador_id not in jugadores_asignados_ids
-        ]
+        jugadores_que_entrenan_ids = {
+    asistencia.jugador_id
+    for asistencia in asistencias
+    if asistencia.estado in ["asistio", "tarde"]
+}
 
-        cantidad_asignados = len(jugadores_asignados_ids)
-        cantidad_total = len(asistencias)
+    jugadores_pendientes = [
+    asistencia.jugador
+    for asistencia in asistencias
+    if (
+        asistencia.estado in ["asistio", "tarde"]
+        and asistencia.jugador_id not in jugadores_asignados_ids
+    )
+]
 
-        cambios_resumen.append({
+    cantidad_asignados = len(
+    jugadores_asignados_ids & jugadores_que_entrenan_ids
+)
+
+    cantidad_total = len(jugadores_que_entrenan_ids)
+
+    cambios_resumen.append({
             "numero": numero_cambio,
             "cantidad_asignados": cantidad_asignados,
             "cantidad_total": cantidad_total,
@@ -3126,6 +3138,283 @@ def reportes(request):
             "motivos_no_entrenamiento": motivos_no_entrenamiento,
         },
     )
+    
+    
+@login_required
+def resumen_dia(request):
+    fecha_str = request.GET.get("fecha")
+
+    if fecha_str:
+        try:
+            fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
+        except ValueError:
+            fecha = timezone.localdate()
+    else:
+        fecha = timezone.localdate()
+
+    dia_anterior = fecha - timedelta(days=1)
+    dia_siguiente = fecha + timedelta(days=1)
+
+    entrenamientos = (
+        Entrenamiento.objects
+        .filter(fecha=fecha)
+        .select_related(
+            "entrenador_responsable",
+            "entrenador",
+        )
+        .order_by("turno")
+    )
+
+    turnos_resumen = []
+
+    total_presentes = 0
+    total_tardes = 0
+    total_ausentes = 0
+    total_trabajos = 0
+    total_partidos = 0
+    total_observaciones = 0
+    total_ejercicios = 0
+
+    def texto_campo(objeto, campos_posibles):
+        for campo in campos_posibles:
+            if hasattr(objeto, campo):
+                valor = getattr(objeto, campo)
+                if valor:
+                    return valor
+        return ""
+
+    def tipo_trabajo(trabajo):
+        if hasattr(trabajo, "get_tipo_display"):
+            return trabajo.get_tipo_display()
+
+        return texto_campo(
+            trabajo,
+            [
+                "tipo",
+                "tipo_trabajo",
+            ],
+        )
+
+    def texto_observacion(observacion):
+        return texto_campo(
+            observacion,
+            [
+                "texto",
+                "observacion",
+                "detalle",
+                "comentario",
+            ],
+        )
+
+    def sets_del_partido(partido):
+        if hasattr(partido, "sets"):
+            return partido.sets.all()
+
+        if hasattr(partido, "setpartido_set"):
+            return partido.setpartido_set.all()
+
+        return []
+
+    def resultado_partido(partido):
+        sets_j1 = 0
+        sets_j2 = 0
+        detalle_sets = []
+
+        for set_partido in sets_del_partido(partido):
+            puntos_j1 = texto_campo(
+                set_partido,
+                [
+                    "puntos_jugador_1",
+                    "puntos_j1",
+                    "jugador_1_puntos",
+                    "puntos_1",
+                ],
+            )
+
+            puntos_j2 = texto_campo(
+                set_partido,
+                [
+                    "puntos_jugador_2",
+                    "puntos_j2",
+                    "jugador_2_puntos",
+                    "puntos_2",
+                ],
+            )
+
+            if puntos_j1 == "" or puntos_j2 == "":
+                continue
+
+            try:
+                puntos_j1_int = int(puntos_j1)
+                puntos_j2_int = int(puntos_j2)
+            except (TypeError, ValueError):
+                continue
+
+            detalle_sets.append(f"{puntos_j1_int}-{puntos_j2_int}")
+
+            if puntos_j1_int > puntos_j2_int:
+                sets_j1 += 1
+            elif puntos_j2_int > puntos_j1_int:
+                sets_j2 += 1
+
+        if detalle_sets:
+            return {
+                "marcador": f"{sets_j1}-{sets_j2}",
+                "sets": ", ".join(detalle_sets),
+            }
+
+        return {
+            "marcador": "Sin sets cargados",
+            "sets": "",
+        }
+
+    for entrenamiento in entrenamientos:
+        asistencias = (
+            Asistencia.objects
+            .filter(entrenamiento=entrenamiento)
+            .select_related("jugador")
+            .order_by(
+                "jugador__apellido",
+                "jugador__nombre",
+            )
+        )
+
+        presentes = asistencias.filter(estado="asistio").count()
+        tardes = asistencias.filter(estado="tarde").count()
+        ausentes = asistencias.filter(estado="ausente").count()
+
+        ejercicios_turno = (
+            EjercicioTurno.objects
+            .filter(entrenamiento=entrenamiento)
+            .select_related("ejercicio")
+            .order_by(
+                "ejercicio__categoria",
+                "ejercicio__nombre",
+            )
+        )
+
+        ejercicios = []
+
+        for ejercicio_turno in ejercicios_turno:
+            ejercicio = ejercicio_turno.ejercicio
+
+            if hasattr(ejercicio, "get_categoria_display"):
+                categoria = ejercicio.get_categoria_display()
+            else:
+                categoria = getattr(ejercicio, "categoria", "")
+
+            ejercicios.append(
+                {
+                    "nombre": ejercicio.nombre,
+                    "categoria": categoria,
+                }
+            )
+
+        trabajos_qs = (
+            TrabajoTurno.objects
+            .filter(entrenamiento=entrenamiento)
+            .select_related("jugador_1", "jugador_2")
+            .order_by("cambio", "id")
+        )
+
+        trabajos = []
+
+        for trabajo in trabajos_qs:
+            trabajos.append(
+                {
+                    "cambio": trabajo.cambio,
+                    "tipo": tipo_trabajo(trabajo),
+                    "jugador_1": getattr(trabajo, "jugador_1", None),
+                    "jugador_2": getattr(trabajo, "jugador_2", None),
+                    "detalle": texto_campo(
+                        trabajo,
+                        [
+                            "detalle",
+                            "descripcion",
+                            "observacion",
+                            "comentario",
+                        ],
+                    ),
+                }
+            )
+
+        partidos_qs = (
+            PartidoTurno.objects
+            .filter(entrenamiento=entrenamiento)
+            .select_related("jugador_1", "jugador_2")
+            .prefetch_related("sets")
+            .order_by("id")
+        )
+
+        partidos = []
+
+        for partido in partidos_qs:
+            resultado = resultado_partido(partido)
+
+            partidos.append(
+                {
+                    "jugador_1": getattr(partido, "jugador_1", None),
+                    "jugador_2": getattr(partido, "jugador_2", None),
+                    "marcador": resultado["marcador"],
+                    "sets": resultado["sets"],
+                }
+            )
+
+        observaciones_qs = (
+            ObservacionJugador.objects
+            .filter(entrenamiento=entrenamiento)
+            .select_related("jugador")
+            .order_by("id")
+        )
+
+        observaciones = []
+
+        for observacion in observaciones_qs:
+            observaciones.append(
+                {
+                    "jugador": getattr(observacion, "jugador", None),
+                    "texto": texto_observacion(observacion),
+                }
+            )
+
+        total_presentes += presentes
+        total_tardes += tardes
+        total_ausentes += ausentes
+        total_trabajos += len(trabajos)
+        total_partidos += len(partidos)
+        total_observaciones += len(observaciones)
+        total_ejercicios += len(ejercicios)
+
+        turnos_resumen.append(
+            {
+                "entrenamiento": entrenamiento,
+                "entrenador_nombre": nombre_entrenador(entrenamiento),
+                "presentes": presentes,
+                "tardes": tardes,
+                "ausentes": ausentes,
+                "asistencias": asistencias,
+                "ejercicios": ejercicios,
+                "trabajos": trabajos,
+                "partidos": partidos,
+                "observaciones": observaciones,
+            }
+        )
+
+    contexto = {
+        "fecha": fecha,
+        "dia_anterior": dia_anterior,
+        "dia_siguiente": dia_siguiente,
+        "turnos_resumen": turnos_resumen,
+        "total_presentes": total_presentes,
+        "total_tardes": total_tardes,
+        "total_ausentes": total_ausentes,
+        "total_trabajos": total_trabajos,
+        "total_partidos": total_partidos,
+        "total_observaciones": total_observaciones,
+        "total_ejercicios": total_ejercicios,
+    }
+
+    return render(request, "asistencia/resumen_dia.html", contexto)
     
 @login_required
 def exportar_reporte_mensual(request):

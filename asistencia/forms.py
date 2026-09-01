@@ -344,9 +344,17 @@ class TrabajoTurnoForm(forms.ModelForm):
         if not self.entrenamiento:
             return
 
+        # Solo pueden cargarse a trabajos/cambios los jugadores que entrenaron.
+        # Los ausentes y pendientes no aparecen en los selects.
         asistencias_turno = (
             Asistencia.objects
-            .filter(entrenamiento=self.entrenamiento)
+            .filter(
+                entrenamiento=self.entrenamiento,
+                estado__in=[
+                    "asistio",
+                    "tarde",
+                ],
+            )
             .select_related("jugador")
         )
 
@@ -403,8 +411,18 @@ class TrabajoTurnoForm(forms.ModelForm):
                         trabajo.jugador_2_id
                     )
 
-            total_jugadores = asistencias_turno.count()
-            total_asignados = len(jugadores_asignados_ids)
+            jugadores_que_entrenaron_ids = set(
+                asistencias_turno.values_list(
+                    "jugador_id",
+                    flat=True,
+                )
+            )
+
+            total_jugadores = len(jugadores_que_entrenaron_ids)
+            total_asignados = len(
+                jugadores_asignados_ids
+                & jugadores_que_entrenaron_ids
+            )
 
             ultimo_cambio_completo = (
                 total_jugadores > 0
@@ -431,6 +449,35 @@ class TrabajoTurnoForm(forms.ModelForm):
 
         if not cambio or not jugador_1:
             return cleaned_data
+
+        # Seguridad extra: aunque alguien modifique el HTML,
+        # no dejamos cargar trabajos a jugadores ausentes o pendientes.
+        jugadores_que_entrenaron_ids = set(
+            Asistencia.objects
+            .filter(
+                entrenamiento=self.entrenamiento,
+                estado__in=[
+                    "asistio",
+                    "tarde",
+                ],
+            )
+            .values_list(
+                "jugador_id",
+                flat=True,
+            )
+        )
+
+        if jugador_1 and jugador_1.id not in jugadores_que_entrenaron_ids:
+            self.add_error(
+                "jugador_1",
+                f"{jugador_1} no figura como presente o tarde en este turno.",
+            )
+
+        if jugador_2 and jugador_2.id not in jugadores_que_entrenaron_ids:
+            self.add_error(
+                "jugador_2",
+                f"{jugador_2} no figura como presente o tarde en este turno.",
+            )
 
         if tipo == TrabajoTurno.Tipo.PAREJA:
             if not jugador_2:
@@ -482,44 +529,6 @@ class TrabajoTurnoForm(forms.ModelForm):
                     "jugador_2",
                     f"{jugador_2} ya tiene una actividad cargada en el cambio {cambio}.",
                 )
-
-        if (
-            tipo == TrabajoTurno.Tipo.PAREJA
-            and jugador_1
-            and jugador_2
-        ):
-            parejas_existentes = TrabajoTurno.objects.filter(
-                entrenamiento=self.entrenamiento,
-                tipo=TrabajoTurno.Tipo.PAREJA,
-            )
-
-            if self.instance and self.instance.pk:
-                parejas_existentes = parejas_existentes.exclude(
-                    pk=self.instance.pk
-                )
-
-            pareja_duplicada = parejas_existentes.filter(
-                (
-                    Q(jugador_1=jugador_1)
-                    & Q(jugador_2=jugador_2)
-                )
-                |
-                (
-                    Q(jugador_1=jugador_2)
-                    & Q(jugador_2=jugador_1)
-                )
-            ).first()
-
-            if pareja_duplicada:
-                self.add_error(
-                    "jugador_2",
-                    (
-                        f"La pareja {jugador_1} - {jugador_2} "
-                        f"ya fue asignada en el cambio "
-                        f"{pareja_duplicada.cambio}."
-                    ),
-                )
-
         return cleaned_data
 
 
