@@ -348,13 +348,7 @@ class TrabajoTurnoForm(forms.ModelForm):
         # Los ausentes y pendientes no aparecen en los selects.
         asistencias_turno = (
             Asistencia.objects
-            .filter(
-                entrenamiento=self.entrenamiento,
-                estado__in=[
-                    "asistio",
-                    "tarde",
-                ],
-            )
+            .filter(entrenamiento=self.entrenamiento)
             .select_related("jugador")
         )
 

@@ -319,9 +319,10 @@ def dia_turno(request, fecha_str, turno):
         if cambio_clave not in jugadores_ocupados_por_cambio:
             jugadores_ocupados_por_cambio[cambio_clave] = []
 
-        jugadores_ocupados_por_cambio[cambio_clave].append(
-            trabajo.jugador_1_id
-        )
+        if trabajo.jugador_1_id:
+            jugadores_ocupados_por_cambio[cambio_clave].append(
+                trabajo.jugador_1_id
+            )
 
         if trabajo.jugador_2_id:
             jugadores_ocupados_por_cambio[cambio_clave].append(
@@ -329,6 +330,15 @@ def dia_turno(request, fecha_str, turno):
             )
 
     cambios_resumen = []
+
+    jugadores_que_entrenan_ids = {
+        asistencia.jugador_id
+        for asistencia in asistencias
+        if asistencia.estado in [
+            "asistio",
+            "tarde",
+        ]
+    }
 
     numeros_cambio = sorted(
         set(
@@ -347,37 +357,36 @@ def dia_turno(request, fecha_str, turno):
         jugadores_asignados_ids = set()
 
         for trabajo in trabajos_del_cambio:
-            jugadores_asignados_ids.add(
-                trabajo.jugador_1_id
-            )
+            if trabajo.jugador_1_id:
+                jugadores_asignados_ids.add(
+                    trabajo.jugador_1_id
+                )
 
             if trabajo.jugador_2_id:
                 jugadores_asignados_ids.add(
                     trabajo.jugador_2_id
                 )
 
-        jugadores_que_entrenan_ids = {
-    asistencia.jugador_id
-    for asistencia in asistencias
-    if asistencia.estado in ["asistio", "tarde"]
-}
+        jugadores_pendientes = [
+            asistencia.jugador
+            for asistencia in asistencias
+            if (
+                asistencia.estado in [
+                    "asistio",
+                    "tarde",
+                ]
+                and asistencia.jugador_id not in jugadores_asignados_ids
+            )
+        ]
 
-    jugadores_pendientes = [
-    asistencia.jugador
-    for asistencia in asistencias
-    if (
-        asistencia.estado in ["asistio", "tarde"]
-        and asistencia.jugador_id not in jugadores_asignados_ids
-    )
-]
+        cantidad_asignados = len(
+            jugadores_asignados_ids
+            & jugadores_que_entrenan_ids
+        )
 
-    cantidad_asignados = len(
-    jugadores_asignados_ids & jugadores_que_entrenan_ids
-)
+        cantidad_total = len(jugadores_que_entrenan_ids)
 
-    cantidad_total = len(jugadores_que_entrenan_ids)
-
-    cambios_resumen.append({
+        cambios_resumen.append({
             "numero": numero_cambio,
             "cantidad_asignados": cantidad_asignados,
             "cantidad_total": cantidad_total,
@@ -546,8 +555,8 @@ def dia_turno(request, fecha_str, turno):
             and ausentes_sin_motivo_turno == 0
             and cambios_incompletos_turno == 0
             and partidos_sin_sets_turno == 0
-            and entrenamiento.entrenador_responsable is not None 
-            ),
+            and entrenamiento.entrenador_responsable is not None
+        ),
     }
 
     contexto = {
@@ -569,7 +578,7 @@ def dia_turno(request, fecha_str, turno):
         "trabajos_otros_turnos": trabajos_otros_turnos,
         "nombre_entrenador": nombre_entrenador(
             entrenamiento
-        ),  
+        ),
         "asistencias": asistencias,
         "jugadores_disponibles": jugadores_disponibles,
         "partidos_turno": partidos_turno,
@@ -586,6 +595,7 @@ def dia_turno(request, fecha_str, turno):
         "asistencia/dia_turno.html",
         contexto,
     )
+
     
 
 @login_required
